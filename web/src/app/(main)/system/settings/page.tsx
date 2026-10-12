@@ -15,6 +15,7 @@ import { api } from "@/lib/api";
 import { CHAT_SEND_MODE_OPTIONS, type ChatSendMode, setChatSendMode, useChatSendMode } from "@/lib/chat-send-mode";
 import type { Settings } from "@/lib/types";
 
+import { LanguageCard } from "./_components/language-card";
 import { UpdateCard } from "./_components/update-card";
 
 export default function SystemSettingsPage() {
@@ -268,6 +269,8 @@ export default function SystemSettingsPage() {
       <div className="columns-1 gap-4 md:gap-6 lg:columns-2">
         <UpdateCard />
 
+        <LanguageCard />
+
         <Card className="mb-4 break-inside-avoid md:mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -444,8 +447,8 @@ export default function SystemSettingsPage() {
               记录代理，独立于流量捕获。
               <br />
               来源可选 <b>DuckDuckGo（ddgs）</b>（无需 Key）、<b>Brave（免费版）</b>（需填写 Brave API Key）、{" "}
-              <b>Tavily</b>（需填写 Tavily API Key）或 <b>DeepSeek</b>（复用当前 LLM 配置）。总开关关闭时，各
-              Agent 的网络搜索开关不可用。
+              <b>Tavily</b>（需填写 Tavily API Key）或 <b>DeepSeek</b>（复用当前 LLM 配置）。总开关关闭时，各 Agent
+              的网络搜索开关不可用。
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">

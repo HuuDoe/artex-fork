@@ -25,7 +25,10 @@ FROM golang:1.26-bookworm AS gobuild
 ARG TARGETARCH
 ARG GOPROXY=https://goproxy.cn,https://proxy.golang.org,direct
 WORKDIR /src
+# go.mod 里 replace github.com/Autumn-27/norma => ./norma，所以 mod download
+# 之前必须先把本地 norma 模块一起拷进来，否则解析本地 replace 会失败。
 COPY go.mod go.sum ./
+COPY norma/ ./norma/
 RUN go mod download
 COPY . .
 # 前端静态产物从 web 阶段拷入（.dockerignore 已排除宿主 dist，不会冲突）

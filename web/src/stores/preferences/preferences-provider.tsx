@@ -5,6 +5,8 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { type StoreApi, useStore } from "zustand";
 
 import { type FontKey, fontRegistry } from "@/lib/fonts/registry";
+import { applyLocale } from "@/lib/i18n/i18n-provider";
+import { LOCALE_VALUES } from "@/lib/i18n/locale";
 import {
   CONTENT_LAYOUT_VALUES,
   NAVBAR_STYLE_VALUES,
@@ -40,6 +42,7 @@ function readDomState(): Partial<PreferencesState> {
     navbarStyle: getSafeValue(root.getAttribute("data-navbar-style"), NAVBAR_STYLE_VALUES),
     sidebarVariant: getSafeValue(root.getAttribute("data-sidebar-variant"), SIDEBAR_VARIANT_VALUES),
     sidebarCollapsible: getSafeValue(root.getAttribute("data-sidebar-collapsible"), SIDEBAR_COLLAPSIBLE_VALUES),
+    locale: getSafeValue(root.getAttribute("data-locale"), LOCALE_VALUES),
   };
 }
 
@@ -108,6 +111,18 @@ export const PreferencesStoreProvider = ({
       unsubscribeMedia?.();
       unsubscribeStore();
     };
+  }, [store]);
+
+  // Keep <html lang> / data-locale in sync with the active locale.
+  useEffect(() => {
+    const start = domSnapshotRef.current?.locale ?? store.getState().locale;
+    if (start) applyLocale(start);
+
+    const unsubscribeStore = store.subscribe((s, p) => {
+      if (s.locale !== p.locale && s.locale) applyLocale(s.locale);
+    });
+
+    return () => unsubscribeStore();
   }, [store]);
 
   return <PreferencesStoreContext.Provider value={store}>{children}</PreferencesStoreContext.Provider>;
