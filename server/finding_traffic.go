@@ -101,34 +101,45 @@ func evidenceError(w http.ResponseWriter, err error) {
 	writeErr(w, status, err.Error())
 }
 
+func localizedEvidenceError(w http.ResponseWriter, r *http.Request, err error) {
+	status := http.StatusUnprocessableEntity
+	if errors.Is(err, db.ErrEvidenceConflict) || errors.Is(err, db.ErrTaskArchiveState) {
+		status = http.StatusConflict
+	}
+	if errors.Is(err, db.ErrFindingNotFound) || errors.Is(err, db.ErrEvidenceNotFound) {
+		status = http.StatusNotFound
+	}
+	localizedErr(w, r, status, err.Error())
+}
+
 func (s *Server) findingTrafficAccess(w http.ResponseWriter, r *http.Request, write bool) (int64, bool) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil || id <= 0 {
-		writeErr(w, 400, "invalid finding id")
+		localizedErr(w, r, 400, "invalid finding id")
 		return 0, false
 	}
 	f, err := s.m.pg.GetFinding(id)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return 0, false
 	}
 	if f == nil {
-		writeErr(w, 404, "finding not found")
+		localizedErr(w, r, 404, "finding not found")
 		return 0, false
 	}
 	if taskID := r.URL.Query().Get("context_task"); taskID != "" {
 		task := s.m.ResolveTask(taskID)
 		if task == nil {
-			writeErr(w, 404, "context task not found")
+			localizedErr(w, r, 404, "context task not found")
 			return 0, false
 		}
 		_, inherited, allowed := findingProvenanceInTask(task, f.TaskID)
 		if !allowed {
-			writeErr(w, 404, "finding not available in task context")
+			localizedErr(w, r, 404, "finding not available in task context")
 			return 0, false
 		}
 		if write && inherited {
-			writeErr(w, 403, "继承漏洞只读，请在来源任务中修改")
+			localizedErr(w, r, 403, "继承漏洞只读，请在来源任务中修改")
 			return 0, false
 		}
 	}
@@ -152,7 +163,7 @@ func (s *Server) getFindingTraffic(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := s.m.pg.GetFindingTraffic(r.Context(), id)
 	if err != nil {
-		evidenceError(w, err)
+		localizedEvidenceError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, trafficSummary(out))
@@ -167,16 +178,16 @@ func (s *Server) bindFindingTraffic(w http.ResponseWriter, r *http.Request) {
 		Refs []db.TrafficRef `json:"traffic_refs"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&body); err != nil {
-		writeErr(w, 400, "invalid body")
+		localizedErr(w, r, 400, "invalid body")
 		return
 	}
 	if len(body.Refs) == 0 {
-		writeErr(w, 400, "请选择流量")
+		localizedErr(w, r, 400, "请选择流量")
 		return
 	}
 	out, err := s.evidenceStore().Bind(r.Context(), id, body.Refs)
 	if err != nil {
-		evidenceError(w, err)
+		localizedEvidenceError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, trafficSummary(out))
@@ -194,21 +205,21 @@ func (s *Server) editFindingTraffic(w http.ResponseWriter, r *http.Request) {
 		Order   []string `json:"binding_ids"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&body); err != nil || body.Version == nil {
-		writeErr(w, 400, "version 和有效请求体必填")
+		localizedErr(w, r, 400, "version 和有效请求体必填")
 		return
 	}
 	var order []int64
 	bindingID := int64(0)
 	if r.Method == http.MethodPut {
 		if body.Order == nil {
-			writeErr(w, 400, "binding_ids 必填")
+			localizedErr(w, r, 400, "binding_ids 必填")
 			return
 		}
 		order = []int64{}
 		for _, raw := range body.Order {
 			v, err := strconv.ParseInt(raw, 10, 64)
 			if err != nil || v <= 0 {
-				writeErr(w, 400, "invalid binding id")
+				localizedErr(w, r, 400, "invalid binding id")
 				return
 			}
 			order = append(order, v)
@@ -217,13 +228,13 @@ func (s *Server) editFindingTraffic(w http.ResponseWriter, r *http.Request) {
 		var err error
 		bindingID, err = strconv.ParseInt(r.PathValue("binding_id"), 10, 64)
 		if err != nil || bindingID <= 0 {
-			writeErr(w, 400, "invalid binding id")
+			localizedErr(w, r, 400, "invalid binding id")
 			return
 		}
 	}
 	err := s.m.pg.EditFindingTraffic(r.Context(), id, bindingID, *body.Version, body.Role, body.Note, r.Method == http.MethodDelete, order)
 	if err != nil {
-		evidenceError(w, err)
+		localizedEvidenceError(w, r, err)
 		return
 	}
 	s.getFindingTraffic(w, r)
@@ -276,7 +287,7 @@ func readEvidencePreview(store *evidence.Store, snapshot db.TrafficEvidenceSnaps
 	if out.Binary {
 		out.Content = fmt.Sprintf("[二进制正文，%d 字节；请下载查看]", total)
 	} else {
-		out.Content = string(bytes.ToValidUTF8(raw, []byte("�")))
+		out.Content = string(bytes.ToValidUTF8(raw, []byte("")))
 	}
 	return out, nil
 }
@@ -288,7 +299,7 @@ func (s *Server) getFindingTrafficDetail(w http.ResponseWriter, r *http.Request)
 	}
 	bid, err := strconv.ParseInt(r.PathValue("binding_id"), 10, 64)
 	if err != nil || bid <= 0 {
-		writeErr(w, 400, "invalid binding id")
+		localizedErr(w, r, 400, "invalid binding id")
 		return
 	}
 	store := s.evidenceStore()
@@ -306,7 +317,7 @@ func (s *Server) getFindingTrafficDetail(w http.ResponseWriter, r *http.Request)
 		return nil
 	})
 	if err != nil {
-		evidenceError(w, err)
+		localizedEvidenceError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, result)
@@ -319,7 +330,7 @@ func (s *Server) getFindingTrafficBody(w http.ResponseWriter, r *http.Request) {
 	}
 	bid, err := strconv.ParseInt(r.PathValue("binding_id"), 10, 64)
 	if err != nil || bid <= 0 {
-		writeErr(w, 400, "invalid binding id")
+		localizedErr(w, r, 400, "invalid binding id")
 		return
 	}
 	side := r.URL.Query().Get("side")
@@ -329,13 +340,13 @@ func (s *Server) getFindingTrafficBody(w http.ResponseWriter, r *http.Request) {
 	// write for as long as the client takes to receive the data.
 	b, err := store.Binding(r.Context(), id, bid)
 	if err != nil {
-		evidenceError(w, err)
+		localizedEvidenceError(w, r, err)
 		return
 	}
 	if r.URL.Query().Get("download") == "1" {
 		f, length, err := store.OpenBody(b.Snapshot, side)
 		if err != nil {
-			evidenceError(w, err)
+			localizedEvidenceError(w, r, err)
 			return
 		}
 		defer f.Close()
@@ -351,7 +362,7 @@ func (s *Server) getFindingTrafficBody(w http.ResponseWriter, r *http.Request) {
 		if raw := r.URL.Query().Get(name); raw != "" {
 			v, err := strconv.ParseInt(raw, 10, 64)
 			if err != nil {
-				evidenceError(w, err)
+				localizedEvidenceError(w, r, err)
 				return
 			}
 			*dst = v
@@ -359,7 +370,7 @@ func (s *Server) getFindingTrafficBody(w http.ResponseWriter, r *http.Request) {
 	}
 	preview, err := readEvidencePreview(store, b.Snapshot, side, offset, length)
 	if err != nil {
-		evidenceError(w, err)
+		localizedEvidenceError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, preview)

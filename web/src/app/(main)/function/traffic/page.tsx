@@ -526,6 +526,7 @@ export default function TrafficPage() {
             className="size-8"
             disabled={page <= 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
+            aria-label={t("traffic.previousPage")}
           >
             <ChevronLeftIcon />
           </Button>
@@ -538,6 +539,7 @@ export default function TrafficPage() {
             className="size-8"
             disabled={page + 1 >= pageCount}
             onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+            aria-label={t("traffic.nextPage")}
           >
             <ChevronRightIcon />
           </Button>
@@ -549,7 +551,7 @@ export default function TrafficPage() {
         <span className="pl-1 text-xs font-medium text-muted-foreground">{t("traffic.advancedFilters")}</span>
         <div className="relative w-56">
           <Input
-            placeholder="响应内容（正文关键词，≥3字）"
+            placeholder={t("traffic.bodyPlaceholder")}
             value={body}
             onChange={(e) => setBody(e.target.value)}
             className="h-8"
@@ -557,7 +559,7 @@ export default function TrafficPage() {
         </div>
         <div className="relative w-52">
           <Input
-            placeholder="路径（如 /api/user/…）"
+            placeholder={t("traffic.pathPlaceholder")}
             value={path}
             onChange={(e) => setPath(e.target.value)}
             className="h-8"
@@ -565,10 +567,10 @@ export default function TrafficPage() {
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger size="sm" className="w-28">
-            <SelectValue placeholder="状态码" />
+            <SelectValue placeholder={t("traffic.statusCode")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部状态码</SelectItem>
+            <SelectItem value="all">{t("traffic.allStatusCodes")}</SelectItem>
             {STATUS_BUCKETS.map((s) => (
               <SelectItem key={s} value={s}>
                 {s}
@@ -577,11 +579,11 @@ export default function TrafficPage() {
           </SelectContent>
         </Select>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <span>响应长度</span>
+          <span>{t("traffic.respLength")}</span>
           <Input
             type="number"
             min={0}
-            placeholder="最小(B)"
+            placeholder={t("traffic.minBytes")}
             value={respMin}
             onChange={(e) => setRespMin(e.target.value)}
             className="h-8 w-24"
@@ -590,7 +592,7 @@ export default function TrafficPage() {
           <Input
             type="number"
             min={0}
-            placeholder="最大(B)"
+            placeholder={t("traffic.maxBytes")}
             value={respMax}
             onChange={(e) => setRespMax(e.target.value)}
             className="h-8 w-24"
@@ -599,19 +601,19 @@ export default function TrafficPage() {
         {hasAdvancedFilter ? (
           <Button variant="ghost" size="sm" className="h-8" onClick={resetAdvancedFilters}>
             <FilterXIcon className="size-3.5" />
-            清除筛选
+            {t("traffic.clearFilters")}
           </Button>
         ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground">已选 {selectedFlows.size} 条流量</span>
+        <span className="text-sm text-muted-foreground">{t("traffic.selectedFlows", { count: selectedFlows.size })}</span>
         <Button variant="outline" size="sm" disabled={selectedFlows.size === 0} onClick={() => setLinking(true)}>
-          关联到漏洞
+          {t("traffic.linkToVulnerability")}
         </Button>
         {selectedFlows.size > 0 ? (
           <Button variant="ghost" size="sm" onClick={() => setSelectedFlows(new Set())}>
-            清空选择
+            {t("traffic.clearSelection")}
           </Button>
         ) : null}
       </div>
@@ -624,7 +626,7 @@ export default function TrafficPage() {
                 <TableRow>
                   <TableHead className="w-10">
                     <Checkbox
-                      aria-label="选择本页流量"
+                      aria-label={t("traffic.selectPageFlows")}
                       checked={exchanges.length > 0 && exchanges.every((e) => selectedFlows.has(e.id))}
                       onCheckedChange={(checked) =>
                         setSelectedFlows((previous) => {
@@ -640,18 +642,18 @@ export default function TrafficPage() {
                   </TableHead>
                   <SortableHead
                     field="ts"
-                    label="时间"
+                    label={t("traffic.time")}
                     activeField={sort.field}
                     direction={sort.direction}
                     onSort={toggleSort}
                     className="w-36"
                   />
                   <TableHead className="w-44">host</TableHead>
-                  <TableHead className="w-20">方法</TableHead>
+                  <TableHead className="w-20">{t("traffic.method")}</TableHead>
                   <TableHead>URL</TableHead>
                   <SortableHead
                     field="status"
-                    label="状态码"
+                    label={t("traffic.statusCode")}
                     activeField={sort.field}
                     direction={sort.direction}
                     onSort={toggleSort}
@@ -660,7 +662,7 @@ export default function TrafficPage() {
                   <TableHead className="w-36">content-type</TableHead>
                   <SortableHead
                     field="resp_len"
-                    label="响应长度"
+                    label={t("traffic.respLength")}
                     activeField={sort.field}
                     direction={sort.direction}
                     onSort={toggleSort}
@@ -678,7 +680,7 @@ export default function TrafficPage() {
                   >
                     <TableCell>
                       <Checkbox
-                        aria-label={`选择流量 ${e.id}`}
+                        aria-label={t("traffic.selectFlow", { id: e.id })}
                         checked={selectedFlows.has(e.id)}
                         onClick={(event) => event.stopPropagation()}
                         onCheckedChange={(checked) =>

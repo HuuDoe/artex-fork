@@ -51,18 +51,7 @@ import { ReportTab } from "./_tabs/report-tab";
 import { RetestsTab } from "./_tabs/retests-tab";
 import { SessionsTab } from "./_tabs/sessions-tab";
 
-const TABS = [
-  { value: "sessions", label: "会话" },
-  { value: "overview", label: "总览" },
-  { value: "graph", label: "探索链路" },
-  { value: "broadcast", label: "播报板" },
-  { value: "findings", label: "发现" },
-  { value: "retests", label: "复测" },
-  { value: "assets", label: "测试资产" },
-  { value: "coverage", label: "资产覆盖图" },
-  { value: "intercept", label: "拦截审批" },
-  { value: "report", label: "报告" },
-];
+
 
 function taskProfileIDs(task: Task): string[] {
   if (task.llm_profile_ids && task.llm_profile_ids.length > 0) {
@@ -215,6 +204,19 @@ function TaskDetailInner() {
   const [interceptPendingCount, setInterceptPendingCount] = React.useState(0);
   const [profiles, setProfiles] = React.useState<LLMProfile[]>([]);
   const [archiving, setArchiving] = React.useState(false);
+
+  const TABS = React.useMemo(() => [
+    { value: "sessions", label: t("tasks.detail.tabs.sessions") },
+    { value: "overview", label: t("tasks.detail.tabs.overview") },
+    { value: "graph", label: t("tasks.detail.tabs.graph") },
+    { value: "broadcast", label: t("tasks.detail.tabs.broadcast") },
+    { value: "findings", label: t("tasks.detail.tabs.findings") },
+    { value: "retests", label: t("tasks.detail.tabs.retests") },
+    { value: "assets", label: t("tasks.detail.tabs.assets") },
+    { value: "coverage", label: t("tasks.detail.tabs.coverage") },
+    { value: "intercept", label: t("tasks.detail.tabs.intercept") },
+    { value: "report", label: t("tasks.detail.tabs.report") },
+  ], [t]);
 
   React.useEffect(() => {
     api
