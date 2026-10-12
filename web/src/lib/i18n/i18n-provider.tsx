@@ -24,8 +24,8 @@ const COOKIE_DAYS = 365;
 
 const CATALOGS: Record<Locale, Dictionary> = {
   "zh-CN": zhCN,
-  en,
-  vi,
+  "en-US": en,
+  "vi-VN": vi,
 };
 
 /**

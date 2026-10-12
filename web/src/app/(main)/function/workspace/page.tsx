@@ -41,6 +41,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 import { api } from "@/lib/api";
 import type { WorkspaceEntry, WorkspaceFile } from "@/lib/types";
 
@@ -50,8 +51,8 @@ function fmtSize(n: number): string {
   if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
   return `${(n / 1024 / 1024 / 1024).toFixed(1)} GB`;
 }
-function fmtTime(ms: number): string {
-  return new Date(ms).toLocaleString("zh-CN", {
+function fmtTime(ms: number, locale: string): string {
+  return new Date(ms).toLocaleString(locale, {
     year: "2-digit",
     month: "2-digit",
     day: "2-digit",
@@ -68,6 +69,7 @@ type EditState = {
 };
 
 export default function WorkspacePage() {
+  const { locale } = useI18n();
   const [path, setPath] = React.useState("");
   const [entries, setEntries] = React.useState<WorkspaceEntry[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -249,7 +251,7 @@ export default function WorkspacePage() {
                   <TableCell className="text-muted-foreground text-right font-mono text-xs">
                     {e.dir ? "—" : fmtSize(e.size)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">{fmtTime(e.mtime)}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{fmtTime(e.mtime, locale === "zh-CN" ? "zh-CN" : "en-US")}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
                       {!e.dir && (

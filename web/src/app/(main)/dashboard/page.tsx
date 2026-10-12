@@ -40,27 +40,28 @@ import type {
   UsageStats,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 // ── chart constants ───────────────────────────────────────────────────────────
 
 const dailyTrendConfig = {
-  input: { label: "输入", color: "hsl(217 91% 60%)" },
-  output: { label: "输出", color: "hsl(263 70% 60%)" },
-  cacheRead: { label: "缓存读", color: "hsl(160 60% 45%)" },
+  input: { label: "dashboard.input", color: "hsl(217 91% 60%)" },
+  output: { label: "dashboard.output", color: "hsl(263 70% 60%)" },
+  cacheRead: { label: "dashboard.cacheRead", color: "hsl(160 60% 45%)" },
 } satisfies ChartConfig;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function fmtRel(ts?: string | number): string {
+function fmtRel(ts: string | number | undefined, t: (key: string, vars?: Record<string, string | number>) => string): string {
   if (!ts) return "—";
   const ms = Date.now() - (typeof ts === "number" ? ts * 1000 : Date.parse(ts as string));
   const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s 前`;
+  if (s < 60) return t("dashboard.secondsAgo", { count: s });
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m 前`;
+  if (m < 60) return t("dashboard.minAgo", { count: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h 前`;
-  return `${Math.floor(h / 24)}d 前`;
+  if (h < 24) return t("dashboard.hourAgo", { count: h });
+  return t("dashboard.dayAgo", { count: Math.floor(h / 24) });
 }
 
 function fmtTokens(n: number): string {
@@ -130,6 +131,7 @@ function SectionTitle({
 // ── page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const { t } = useI18n();
   // data state
   const [tasks, setTasks] = React.useState<Task[]>([]);
   const [findings, setFindings] = React.useState<Finding[]>([]);
@@ -760,7 +762,7 @@ export default function DashboardPage() {
                       className="inline-block size-2 rounded-sm"
                       style={{ background: dailyTrendConfig[k].color }}
                     />
-                    {dailyTrendConfig[k].label}
+                    {t(String(dailyTrendConfig[k].label))}
                   </span>
                 ))}
               </div>
@@ -825,8 +827,7 @@ export default function DashboardPage() {
                         formatter={(value, name) => (
                           <div className="flex w-full items-center justify-between gap-4">
                             <span>
-                              {(dailyTrendConfig as Record<string, { label: string }>)[String(name)]?.label ??
-                                String(name)}
+                              {t(String(dailyTrendConfig[String(name) as keyof typeof dailyTrendConfig]?.label ?? name))}
                             </span>
                             <span className="font-mono font-semibold tabular-nums">{fmtTokens(Number(value))}</span>
                           </div>
@@ -900,7 +901,7 @@ export default function DashboardPage() {
                     <Badge variant="outline" className="px-1.5 py-0 text-[9px] text-muted-foreground">
                       {a.kind}
                     </Badge>
-                    <div className="mt-0.5 text-[9px] tabular-nums text-muted-foreground">{fmtRel(a.ts)}</div>
+                    <div className="mt-0.5 text-[9px] tabular-nums text-muted-foreground">{fmtRel(a.ts, t)}</div>
                   </div>
                 </div>
               ))
@@ -945,7 +946,7 @@ export default function DashboardPage() {
                       {f.summary}
                     </div>
                   </div>
-                  <span className="shrink-0 text-[9px] tabular-nums text-muted-foreground">{fmtRel(f.ts)}</span>
+                  <span className="shrink-0 text-[9px] tabular-nums text-muted-foreground">{fmtRel(f.ts, t)}</span>
                 </div>
               ))
             )}
@@ -991,23 +992,23 @@ export default function DashboardPage() {
                 </td>
               </tr>
             ) : (
-              sortedTasks.map((t) => {
-                const goalsPct = t.goals_total ? Math.round(((t.goals_met ?? 0) / t.goals_total) * 100) : null;
+              sortedTasks.map((task) => {
+                const goalsPct = task.goals_total ? Math.round(((task.goals_met ?? 0) / task.goals_total) * 100) : null;
                 return (
-                  <tr key={t.id} className="border-b last:border-0 transition-colors hover:bg-muted/30">
+                  <tr key={task.id} className="border-b last:border-0 transition-colors hover:bg-muted/30">
                     <td className="max-w-xs px-4 py-3">
-                      <Link href={`/function/tasks/detail?id=${t.id}`} className="group flex flex-col">
-                        <span className="truncate font-medium group-hover:underline">{t.description}</span>
-                        <span className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">{t.id}</span>
+                      <Link href={`/function/tasks/detail?id=${task.id}`} className="group flex flex-col">
+                        <span className="truncate font-medium group-hover:underline">{task.description}</span>
+                        <span className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">{task.id}</span>
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge domain="task" value={t.status} dot className="px-1.5 py-0 text-[10px]" />
+                      <StatusBadge domain="task" value={task.status} dot className="px-1.5 py-0 text-[10px]" />
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge
                         domain="engine"
-                        value={t.engine_mode ?? "idle"}
+                        value={task.engine_mode ?? "idle"}
                         className="px-1.5 py-0 text-[10px]"
                       />
                     </td>
@@ -1016,7 +1017,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2">
                           <Progress value={goalsPct} className="h-1 w-14" />
                           <span className="tabular-nums text-muted-foreground">
-                            {t.goals_met ?? 0}/{t.goals_total}
+                            {task.goals_met ?? 0}/{task.goals_total}
                           </span>
                         </div>
                       ) : (
@@ -1024,14 +1025,14 @@ export default function DashboardPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 tabular-nums">
-                      {(t.in_flight ?? 0) > 0 ? (
-                        <span className="font-semibold">{t.in_flight}</span>
+                      {(task.in_flight ?? 0) > 0 ? (
+                        <span className="font-semibold">{task.in_flight}</span>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 tabular-nums text-muted-foreground">
-                      {fmtRel(t.last_activity_unix ?? t.created_unix)}
+                      {fmtRel(task.last_activity_unix ?? task.created_unix, t)}
                     </td>
                   </tr>
                 );

@@ -93,9 +93,14 @@ export function ThemeBootScript() {
         var navbarStyle = rawNavbarStyle || DEFAULTS.navbar_style;
         var sidebarVariant = rawSidebarVariant || DEFAULTS.sidebar_variant;
         var sidebarCollapsible = rawSidebarCollapsible || DEFAULTS.sidebar_collapsible;
+        var locale =
+          rawLocale === "en" ? "en-US" : rawLocale === "vi" ? "vi-VN" : rawLocale;
         var isValidLocale =
-          rawLocale === "zh-CN" || rawLocale === "en" || rawLocale === "vi";
-        var locale = isValidLocale ? rawLocale : DEFAULTS.locale;
+          locale === "zh-CN" || locale === "en-US" || locale === "vi-VN";
+        locale = isValidLocale ? locale : DEFAULTS.locale;
+        if (rawLocale === "en" || rawLocale === "vi") {
+          document.cookie = "locale=" + locale + "; max-age=31536000; path=/";
+        }
 
         root.classList.toggle("dark", resolvedMode === "dark");
         root.setAttribute("data-theme-mode", mode);

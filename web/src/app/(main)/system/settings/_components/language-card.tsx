@@ -20,7 +20,7 @@ import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
  * readable by the pre-hydration boot script and applied without a flash.
  * Changing it also updates the preferences store, which drives `<html lang>`.
  */
-export function LanguageCard() {
+export function LanguageCard({ compact = false }: { compact?: boolean }) {
   const { t, setLocale: applyLocaleChoice } = useI18n();
   const locale = usePreferencesStore((s) => s.locale);
   const setStoredLocale = usePreferencesStore((s) => s.setLocale);
@@ -35,6 +35,28 @@ export function LanguageCard() {
     },
     [applyLocaleChoice, setStoredLocale, t],
   );
+
+  if (compact) {
+    return (
+      <div className="space-y-1">
+        <Label htmlFor="ui-language" className="font-medium text-xs">
+          {t("settings.language.title")}
+        </Label>
+        <Select value={locale} onValueChange={onChange}>
+          <SelectTrigger id="ui-language" size="sm" className="w-full text-xs" aria-label={t("settings.language.title")}>
+            <SelectValue placeholder={t("settings.language.title")} />
+          </SelectTrigger>
+          <SelectContent>
+            {LOCALE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} className="text-xs" value={option.value}>
+                {option.nativeLabel}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
 
   return (
     <Card className="mb-4 break-inside-avoid md:mb-6">

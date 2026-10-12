@@ -8,15 +8,15 @@
 
 export const LOCALE_OPTIONS = [
   { value: "zh-CN", nativeLabel: "简体中文", englishLabel: "Simplified Chinese" },
-  { value: "en", nativeLabel: "English", englishLabel: "English" },
-  { value: "vi", nativeLabel: "Tiếng Việt", englishLabel: "Vietnamese" },
+  { value: "en-US", nativeLabel: "English", englishLabel: "English" },
+  { value: "vi-VN", nativeLabel: "Tiếng Việt", englishLabel: "Vietnamese" },
 ] as const;
 
 export const LOCALE_VALUES = LOCALE_OPTIONS.map((o) => o.value);
 
 export type Locale = (typeof LOCALE_VALUES)[number];
 
-export const DEFAULT_LOCALE: Locale = "en";
+export const DEFAULT_LOCALE: Locale = "en-US";
 
 /**
  * The locale every message key is authored in. Keys are semantic, so this only
@@ -29,6 +29,8 @@ export function isLocale(value: unknown): value is Locale {
 }
 
 export function resolveLocale(value: unknown): Locale {
+  if (value === "en") return "en-US";
+  if (value === "vi") return "vi-VN";
   return isLocale(value) ? value : DEFAULT_LOCALE;
 }
 
