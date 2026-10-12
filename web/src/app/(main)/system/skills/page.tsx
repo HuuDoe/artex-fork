@@ -46,8 +46,8 @@ import { api } from "@/lib/api";
 import type { Agent, SkillItem, MCPServer, SkillCall, MissingSkill } from "@/lib/types";
 
 function fmtTime(ts?: string) {
-  if (!ts) return "从未调用";
-  return new Date(ts).toLocaleString("zh-CN", {
+  if (!ts) return "Never used";
+  return new Date(ts).toLocaleString("en-US", {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
@@ -177,23 +177,23 @@ function SkillsOverview({
   if (skills.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-muted-foreground">暂无 Skill，点击左侧「新建」或「上传压缩包」开始</p>
+        <p className="text-sm text-muted-foreground">No Skills yet. Click &quot;New Skill&quot; or &quot;Upload archive&quot; on the left to get started.</p>
       </div>
     );
   }
 
   const stats: { label: string; value: React.ReactNode; hint?: string }[] = [
-    { label: "Skill 总数", value: skills.length, hint: `${agg.usedCount} 个被调用过` },
-    { label: "累计调用", value: agg.totalCalls },
-    { label: "未使用", value: agg.neverUsed.length, hint: agg.neverUsed.length > 0 ? "从未被任何 agent 加载" : "全部用过" },
-    { label: "未命中调用", value: agg.missingCalls, hint: missing.length > 0 ? `${missing.length} 个不存在的 skill` : "无" },
+    { label: "Total Skills", value: skills.length, hint: `${agg.usedCount} invoked` },
+    { label: "Total Invocations", value: agg.totalCalls },
+    { label: "Unused", value: agg.neverUsed.length, hint: agg.neverUsed.length > 0 ? "Never loaded by any agent" : "All used" },
+    { label: "Missed Calls", value: agg.missingCalls, hint: missing.length > 0 ? `${missing.length} missing skills` : "None" },
   ];
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <div>
-        <h2 className="text-base font-semibold">技能库总览</h2>
-        <p className="text-muted-foreground text-sm">选择左侧的 Skill 查看详情与调用记录，或从这里快速了解整体使用情况。</p>
+        <h2 className="text-base font-semibold">Skills Library Overview</h2>
+        <p className="text-muted-foreground text-sm">Select a Skill on the left to view details and invocation records, or review overall usage here.</p>
       </div>
 
       {/* 指标卡 */}
@@ -209,10 +209,10 @@ function SkillsOverview({
 
       {/* 调用排行 */}
       <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">调用排行</Label>
+        <Label className="text-xs text-muted-foreground">Invocation Ranking</Label>
         {agg.ranked.length === 0 ? (
           <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-center text-xs">
-            还没有任何 Skill 调用记录。
+            No Skill invocation records yet.
           </p>
         ) : (
           <div className="space-y-1.5">
@@ -231,7 +231,7 @@ function SkillsOverview({
                   />
                 </span>
                 <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
-                  {s.calls} 次
+                  {s.calls} calls
                 </span>
               </button>
             ))}
@@ -242,9 +242,9 @@ function SkillsOverview({
       <div className="grid gap-6 sm:grid-cols-2">
         {/* 最近调用 */}
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">最近调用</Label>
+          <Label className="text-xs text-muted-foreground">Recent Invocations</Label>
           {agg.recent.length === 0 ? (
-            <p className="text-muted-foreground text-xs">暂无记录。</p>
+            <p className="text-muted-foreground text-xs">No records yet.</p>
           ) : (
             <div className="space-y-1">
               {agg.recent.map((s) => (
@@ -265,11 +265,11 @@ function SkillsOverview({
         {/* 未使用（可清理 / 需曝光） */}
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">
-            未使用的 Skill
-            {agg.neverUsed.length > 0 && <span className="ml-1 font-normal">（{agg.neverUsed.length}）</span>}
+            Unused Skills
+            {agg.neverUsed.length > 0 && <span className="ml-1 font-normal">({agg.neverUsed.length})</span>}
           </Label>
           {agg.neverUsed.length === 0 ? (
-            <p className="text-muted-foreground text-xs">所有 Skill 都被调用过。</p>
+            <p className="text-muted-foreground text-xs">All Skills have been invoked.</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {agg.neverUsed.map((s) => (
@@ -362,18 +362,18 @@ export default function SkillsPage() {
     setUploading(true);
     try {
       const r = await api.uploadSkill(file, overwrite);
-      toast.success(`已安装 Skill：${r.name}（${r.files} 个文件）`);
+      toast.success(`Skill installed: ${r.name} (${r.files} files)`);
       load();
     } catch (e) {
       const msg = (e as Error).message;
       // offer overwrite when the skill already exists
       if (!overwrite && msg.includes("已存在")) {
-        if (window.confirm(`${msg}\n\n是否覆盖同名 Skill？`)) {
+        if (window.confirm(`${msg}\n\nOverwrite the Skill with the same name?`)) {
           await uploadZip(file, true);
           return;
         }
       } else {
-        toast.error("上传失败：" + msg);
+        toast.error("Upload failed: " + msg);
       }
     } finally {
       setUploading(false);
@@ -415,7 +415,7 @@ export default function SkillsPage() {
     setFileLoading(true);
     api.readSkillFile(selected.skill, selected.path)
       .then((c) => { setFileContent(c); setDirty(false); })
-      .catch(() => toast.error("读取文件失败"))
+      .catch(() => toast.error("Failed to read file"))
       .finally(() => setFileLoading(false));
   }, [selected]);
 
@@ -469,17 +469,17 @@ export default function SkillsPage() {
     try {
       if (c.kind === "dir") {
         await api.createSkillDir(c.skill, fullPath);
-        toast.success(`已创建文件夹：${fullPath}`);
+        toast.success(`Folder created: ${fullPath}`);
         ensureExpanded(c.skill, fullPath);
       } else {
         await api.writeSkillFile(c.skill, fullPath, "");
-        toast.success(`已创建文件：${fullPath}`);
+        toast.success(`File created: ${fullPath}`);
         setSelected({ skill: c.skill, path: fullPath });
         ensureExpanded(c.skill, c.inDir);
       }
       load();
     } catch (e) {
-      toast.error("创建失败：" + (e as Error).message);
+      toast.error("Create failed: " + (e as Error).message);
     }
   }
 
@@ -492,22 +492,22 @@ export default function SkillsPage() {
   async function deletePath(skill: string, path: string) {
     try {
       await api.deleteSkillPath(skill, path);
-      toast.success(`已删除：${path}`);
+      toast.success(`Deleted: ${path}`);
       if (selected?.skill === skill && selected.path === path) setSelected(null);
       load();
     } catch (e) {
-      toast.error("删除失败：" + (e as Error).message);
+      toast.error("Delete failed: " + (e as Error).message);
     }
   }
 
   async function deleteSkill(name: string) {
     try {
       await api.deleteSkill(name);
-      toast.success(`已删除 Skill：${name}`);
+      toast.success(`Skill deleted: ${name}`);
       if (selected?.skill === name) setSelected(null);
       load();
     } catch (e) {
-      toast.error("删除失败：" + (e as Error).message);
+      toast.error("Delete failed: " + (e as Error).message);
     }
   }
 
@@ -529,10 +529,10 @@ export default function SkillsPage() {
     setSaving(true);
     try {
       await api.writeSkillFile(selected.skill, selected.path, fileContent);
-      toast.success("已保存");
+      toast.success("Saved");
       setDirty(false);
     } catch (e) {
-      toast.error("保存失败：" + (e as Error).message);
+      toast.error("Save failed: " + (e as Error).message);
     } finally { setSaving(false); }
   }
 
@@ -543,12 +543,12 @@ export default function SkillsPage() {
     setDetailMcps(next);
     try {
       await api.updateSkillMeta(skillName, { mcps: next });
-      toast.success(`${mcpOn ? "关联" : "取消关联"}「${mcpName}」`);
+      toast.success(`${mcpOn ? "Linked" : "Unlinked"} "${mcpName}"`);
       load();
     } catch (e) {
       // roll back on error
       setDetailMcps(detailMcps);
-      toast.error("操作失败：" + (e as Error).message);
+      toast.error("Operation failed: " + (e as Error).message);
     }
   }
 
@@ -556,17 +556,17 @@ export default function SkillsPage() {
     const on = (visibility[skillName] ?? []).includes(agentId);
     try {
       await api.toggleSkillVisibility(agentId, skillName, !on);
-      toast.success(`${on ? "取消" : "授予"}「${agentName}」可见`);
+      toast.success(`${on ? "Revoked visibility for" : "Granted visibility to"} "${agentName}"`);
       const ids = await api.skillVisibility(skillName);
       setVisibility((v) => ({ ...v, [skillName]: ids }));
     } catch (e) {
-      toast.error("操作失败：" + (e as Error).message);
+      toast.error("Operation failed: " + (e as Error).message);
     }
   }
 
   async function createNewSkill() {
-    if (!newName.trim()) { toast.error("请填写 name"); return; }
-    if (!newDesc.trim()) { toast.error("description 为必填项"); return; }
+    if (!newName.trim()) { toast.error("Please enter a name"); return; }
+    if (!newDesc.trim()) { toast.error("Description is required"); return; }
     setCreatingSkill(true);
     try {
       const name = newName.trim();
@@ -579,13 +579,13 @@ export default function SkillsPage() {
       });
       // apply initial visibility (fire-and-forget per agent; best-effort)
       await Promise.all(newVisibility.map((id) => api.toggleSkillVisibility(id, name, true)));
-      toast.success("已创建 Skill");
+      toast.success("Skill created");
       setNewOpen(false);
       setNewName(""); setNewDesc(""); setNewLicense(""); setNewCompat(""); setNewInst("");
       setNewMcps([]); setNewVisibility([]);
       load();
     } catch (e) {
-      toast.error("创建失败：" + (e as Error).message);
+      toast.error("Create failed: " + (e as Error).message);
     } finally { setCreatingSkill(false); }
   }
 
@@ -704,8 +704,8 @@ export default function SkillsPage() {
     <div data-content-padding="false" className="flex flex-1 flex-col overflow-hidden">
       <div className="flex items-center gap-3 border-b px-4 py-2.5 lg:px-6">
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-sm font-semibold leading-tight">Skill</h1>
-          <p className="text-muted-foreground text-xs">技能库 · agentskills.io 规范 · 按 Agent 授权可见</p>
+          <h1 className="text-sm font-semibold leading-tight">Skills</h1>
+          <p className="text-muted-foreground text-xs">Library · agentskills.io specs · Authorized by Agent</p>
         </div>
         {/* 缺口清单：agent 点名调用、但库里没有的 skill —— 直接是该补什么的依据。 */}
         {missing.length > 0 && (
@@ -713,12 +713,12 @@ export default function SkillsPage() {
             <PopoverTrigger asChild>
               <Button size="sm" variant="outline" className="ml-auto">
                 <AlertTriangleIcon className="size-3.5 text-amber-500" />
-                {missing.length} 个未命中调用
+                {missing.length} Missing Skill Calls
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-80">
               <p className="mb-2 text-xs text-muted-foreground">
-                Agent 点名调用、但技能库里不存在的 skill。按被点名次数排序。
+                Skills requested by Agents but not found in the library, sorted by request count.
               </p>
               <div className="space-y-1">
                 {missing.map((m) => (
@@ -756,7 +756,7 @@ export default function SkillsPage() {
               title="上传包含 SKILL.md 的 .zip 压缩包"
             >
               <UploadIcon className="size-3.5" />
-              {uploading ? "上传中…" : "上传压缩包"}
+              {uploading ? "Uploading…" : "Upload archive"}
             </Button>
           </div>
           {/* Radix viewport wraps children in a display:table div that grows with

@@ -13,9 +13,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { auth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -55,14 +57,14 @@ export default function LoginPage() {
       .then(({ initialized }) => {
         if (!initialized) router.replace("/setup");
       })
-      .catch(() => setError("无法连接到后端服务"))
+      .catch(() => setError(t("auth.login.connectionError")))
       .finally(() => setChecking(false));
   }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!agreed) {
-      setError("请先阅读并同意《使用须知》");
+      setError(t("auth.login.agreeRequired"));
       return;
     }
     setLoading(true);
@@ -72,7 +74,7 @@ export default function LoginPage() {
       auth.setToken(token);
       window.location.replace("/function/tasks");
     } catch {
-      setError("用户名或密码错误");
+      setError(t("auth.login.invalidCredentials"));
     } finally {
       setLoading(false);
     }
@@ -81,7 +83,7 @@ export default function LoginPage() {
   if (checking) {
     return (
       <div role="status" className="flex min-h-dvh items-center justify-center text-muted-foreground">
-        正在检查登录状态…
+        {t("auth.login.checking")}
       </div>
     );
   }
@@ -103,22 +105,22 @@ export default function LoginPage() {
       <div className="flex w-full items-center justify-center bg-background p-8 lg:w-2/3">
         <div className="w-full max-w-md space-y-10 py-24 lg:py-32">
           <div className="space-y-4 text-center">
-            <h2 className="text-2xl font-medium tracking-tight">登录</h2>
-            <p className="mx-auto max-w-xl text-muted-foreground">欢迎回来，请输入密码以继续使用 ARTEX</p>
+            <h2 className="text-2xl font-medium tracking-tight">{t("auth.login.title")}</h2>
+            <p className="mx-auto max-w-xl text-muted-foreground">{t("auth.login.welcome")}</p>
           </div>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="username">用户名</Label>
+              <Label htmlFor="username">{t("auth.username")}</Label>
               <Input id="username" value="ARTEX" readOnly className="bg-muted text-muted-foreground" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password">密码</Label>
+              <Label htmlFor="password">{t("auth.password")}</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="请输入密码"
+                placeholder={t("auth.login.passwordPlaceholder")}
                 autoFocus
                 autoComplete="current-password"
               />
@@ -131,19 +133,19 @@ export default function LoginPage() {
                 className="mt-0.5"
               />
               <Label htmlFor="agree-terms" className="text-sm font-normal leading-relaxed text-muted-foreground">
-                我已阅读并同意
+                {t("auth.agreement.prefix")}
                 <button
                   type="button"
                   onClick={() => setTermsOpen(true)}
                   className="mx-0.5 font-medium text-primary underline-offset-4 hover:underline"
                 >
-                  《使用须知》
+                  {t("auth.agreement.title")}
                 </button>
               </Label>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading || !password || !agreed}>
-              {loading ? "登录中..." : "登录"}
+              {loading ? t("auth.login.loading") : t("auth.login.submit")}
             </Button>
           </form>
         </div>
@@ -156,9 +158,9 @@ export default function LoginPage() {
               <ShieldCheck className="size-5" />
             </div>
             <div className="space-y-0.5">
-              <DialogTitle className="text-base">ARTEX 使用须知与免责声明</DialogTitle>
+              <DialogTitle className="text-base">{t("auth.terms.title")}</DialogTitle>
               <p className="text-xs text-muted-foreground">
-                版本 v1.0 · 生效日期 2026-09-18 · 请在登录前完整阅读以下全部条款
+                {t("auth.terms.subtitle")}
               </p>
             </div>
           </DialogHeader>
@@ -291,7 +293,7 @@ export default function LoginPage() {
 
           <DialogFooter className="mx-0 mb-0 flex-col items-stretch gap-2 rounded-b-xl px-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              {readToEnd ? "您已浏览全部条款" : "请将条款滚动至底部后再确认"}
+              {readToEnd ? t("auth.terms.readAll") : t("auth.terms.scrollPrompt")}
             </p>
             <DialogClose asChild>
               <Button
@@ -302,7 +304,7 @@ export default function LoginPage() {
                   setError("");
                 }}
               >
-                我已阅读并同意全部条款
+                {t("auth.terms.confirm")}
               </Button>
             </DialogClose>
           </DialogFooter>

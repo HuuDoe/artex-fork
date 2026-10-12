@@ -55,38 +55,38 @@ func (s *Server) chatUpload(w http.ResponseWriter, r *http.Request) {
 	case "staging":
 		sub = "drafts"
 	default:
-		writeErr(w, 400, "scope 必须是 task / session / staging")
+		localizedErr(w, r, 400, "scope 必须是 task / session / staging")
 		return
 	}
 	id := r.URL.Query().Get("id")
 	if !safeChatID.MatchString(id) {
-		writeErr(w, 400, "非法 id")
+		localizedErr(w, r, 400, "非法 id")
 		return
 	}
 	if taskScoped {
 		if s.m.ResolveTask(id) == nil {
-			writeErr(w, 404, "task not found")
+			localizedErr(w, r, 404, "task not found")
 			return
 		}
 		if !s.engine.beginTaskOperation(id) {
-			writeErr(w, http.StatusConflict, "任务正在删除，无法上传附件")
+			localizedErr(w, r, http.StatusConflict, "任务正在删除，无法上传附件")
 			return
 		}
 		defer s.engine.decInflight(id)
 	}
 	dir := filepath.Join(s.m.dir, sub, id, "uploads")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		writeErr(w, 500, "建目录失败: "+err.Error())
+		localizedErr(w, r, 500, "建目录失败: "+err.Error())
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxChatUpload)
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		writeErr(w, 400, "解析上传失败或超出大小限制: "+err.Error())
+		localizedErr(w, r, 400, "解析上传失败或超出大小限制: "+err.Error())
 		return
 	}
 	files := r.MultipartForm.File["file"]
 	if len(files) == 0 {
-		writeErr(w, 400, "缺少上传文件(表单字段 file)")
+		localizedErr(w, r, 400, "缺少上传文件(表单字段 file)")
 		return
 	}
 	out := make([]chatAttachment, 0, len(files))
@@ -97,7 +97,7 @@ func (s *Server) chatUpload(w http.ResponseWriter, r *http.Request) {
 		}
 		dest := uniqueUploadPath(dir, name)
 		if err := saveUpload(hdr, dest); err != nil {
-			writeErr(w, 500, "保存失败: "+err.Error())
+			localizedErr(w, r, 500, "保存失败: "+err.Error())
 			return
 		}
 		base := filepath.Base(dest)

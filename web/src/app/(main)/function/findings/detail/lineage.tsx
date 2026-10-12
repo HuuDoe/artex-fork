@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { ExplorationGraph } from "@/components/exploration-graph";
 import { api } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import type { Edge, TaskNode } from "@/lib/types";
 
 // FindingLineageView renders the exploration sub-graph from the task's initial
@@ -13,6 +14,7 @@ export function FindingLineageView({ findingId }: { findingId: string }) {
   const [nodes, setNodes] = React.useState<TaskNode[]>([]);
   const [edges, setEdges] = React.useState<Edge[]>([]);
   const [loaded, setLoaded] = React.useState(false);
+  const { t } = useI18n();
 
   React.useEffect(() => {
     let alive = true;
@@ -35,7 +37,7 @@ export function FindingLineageView({ findingId }: { findingId: string }) {
   if (loaded && nodes.length === 0) {
     return (
       <p className="text-muted-foreground p-6 text-sm">
-        无链路可展示（该漏洞未关联探索节点，或所属任务已删除）。
+        {t("findings.lineage.noLinkedNodes")}
       </p>
     );
   }
@@ -45,7 +47,7 @@ export function FindingLineageView({ findingId }: { findingId: string }) {
       nodes={nodes}
       edges={edges}
       className="h-[68vh]"
-      emptyHint={loaded ? "无链路" : "加载中…"}
+      emptyHint={loaded ? t("findings.lineage.empty") : t("findings.loading")}
     />
   );
 }

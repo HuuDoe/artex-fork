@@ -13,8 +13,8 @@ import { createContext, useContext } from "react";
 
 import { setClientCookie } from "@/lib/cookie.client";
 
-import { en } from "./catalogs/en";
-import { vi } from "./catalogs/vi";
+import { en } from "./catalogs/en-us";
+import { vi } from "./catalogs/vi-vn";
 import { zhCN } from "./catalogs/zh-cn";
 import { type Dictionary, translate } from "./dictionary";
 import { DEFAULT_LOCALE, type Locale, resolveLocale, toBcp47 } from "./locale";

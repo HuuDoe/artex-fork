@@ -7,22 +7,23 @@ import { PlusIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { useI18n } from "@/lib/i18n";
 import type { AssetInterceptKind, AssetInterceptRuleInput } from "@/lib/types";
 
 // 用 NativeSelect（原生 <select>）而非 shadcn Select：这个编辑器会用在 Sheet 抽屉内，
 // shadcn Select 的下拉 portal 到 body、点击外部会触发抽屉的「点击外部关闭」误关；原生下拉无此问题。
-export const ASSET_INTERCEPT_KIND_OPTIONS: {
+const ASSET_INTERCEPT_KIND_OPTIONS: {
   value: AssetInterceptKind;
-  label: string;
+  labelKey: string;
   placeholder: string;
 }[] = [
-  { value: "exact_domain", label: "域名(全等)", placeholder: "example.gov.cn" },
-  { value: "exact_ip", label: "IP(全等)", placeholder: "203.0.113.10" },
-  { value: "exact_url", label: "URL(全等)", placeholder: "https://example.com/login" },
-  { value: "fuzzy_domain", label: "域名(模糊)", placeholder: ".gov.cn" },
-  { value: "fuzzy_ip", label: "IP(模糊)", placeholder: "203.0.113." },
-  { value: "fuzzy_url", label: "URL(模糊)", placeholder: "/admin" },
-  { value: "cidr", label: "CIDR 网段", placeholder: "192.168.0.0/16" },
+  { value: "exact_domain", labelKey: "assetIntercept.kind.exactDomain", placeholder: "example.gov.cn" },
+  { value: "exact_ip", labelKey: "assetIntercept.kind.exactIp", placeholder: "203.0.113.10" },
+  { value: "exact_url", labelKey: "assetIntercept.kind.exactUrl", placeholder: "https://example.com/login" },
+  { value: "fuzzy_domain", labelKey: "assetIntercept.kind.fuzzyDomain", placeholder: ".gov.cn" },
+  { value: "fuzzy_ip", labelKey: "assetIntercept.kind.fuzzyIp", placeholder: "203.0.113." },
+  { value: "fuzzy_url", labelKey: "assetIntercept.kind.fuzzyUrl", placeholder: "/admin" },
+  { value: "cidr", labelKey: "assetIntercept.kind.cidr", placeholder: "192.168.0.0/16" },
 ];
 
 // AssetInterceptRulesEditor 是「拦截/允许规则」的受控多行编辑区（拦截block/允许allow +
@@ -34,6 +35,8 @@ export function AssetInterceptRulesEditor({
   value: AssetInterceptRuleInput[];
   onChange: (v: AssetInterceptRuleInput[]) => void;
 }) {
+  const { t } = useI18n();
+
   function update(i: number, patch: Partial<AssetInterceptRuleInput>) {
     onChange(value.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   }
@@ -56,8 +59,8 @@ export function AssetInterceptRulesEditor({
               value={r.action}
               onChange={(e) => update(i, { action: e.target.value as "block" | "allow" })}
             >
-              <NativeSelectOption value="block">拦截</NativeSelectOption>
-              <NativeSelectOption value="allow">允许</NativeSelectOption>
+              <NativeSelectOption value="block">{t("assetIntercept.action.block")}</NativeSelectOption>
+              <NativeSelectOption value="allow">{t("assetIntercept.action.allow")}</NativeSelectOption>
             </NativeSelect>
             <NativeSelect
               size="sm"
@@ -67,7 +70,7 @@ export function AssetInterceptRulesEditor({
             >
               {ASSET_INTERCEPT_KIND_OPTIONS.map((o) => (
                 <NativeSelectOption key={o.value} value={o.value}>
-                  {o.label}
+                  {t(o.labelKey)}
                 </NativeSelectOption>
               ))}
             </NativeSelect>
@@ -79,7 +82,7 @@ export function AssetInterceptRulesEditor({
             />
             <Input
               className="w-[120px] shrink-0"
-              placeholder="备注(可选)"
+              placeholder={t("assetIntercept.notePlaceholder")}
               value={r.note}
               onChange={(e) => update(i, { note: e.target.value })}
             />
@@ -96,7 +99,7 @@ export function AssetInterceptRulesEditor({
         );
       })}
       <Button type="button" size="sm" variant="outline" className="w-fit" onClick={add}>
-        <PlusIcon className="size-4" /> 添加一条
+        <PlusIcon className="size-4" /> {t("assetIntercept.addRule")}
       </Button>
     </div>
   );

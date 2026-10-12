@@ -25,7 +25,7 @@ func (s *Server) listActiveFindingRetests(w http.ResponseWriter, r *http.Request
 	}
 	items, err := pg.ListActiveFindingRetests(r.Context())
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"retests": items})
@@ -38,21 +38,21 @@ func (s *Server) listFindingRetests(w http.ResponseWriter, r *http.Request) {
 	}
 	id, ok := pathInt(r, "id")
 	if !ok || id <= 0 {
-		writeErr(w, 400, "bad finding id")
+		localizedErr(w, r, 400, "bad finding id")
 		return
 	}
 	f, err := pg.GetFinding(id)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	if f == nil {
-		writeErr(w, 404, "finding not found")
+		localizedErr(w, r, 404, "finding not found")
 		return
 	}
 	items, err := pg.ListFindingRetests(id)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"retests": items})
@@ -65,7 +65,7 @@ func (s *Server) startFindingRetest(w http.ResponseWriter, r *http.Request) {
 	}
 	id, ok := pathInt(r, "id")
 	if !ok || id <= 0 {
-		writeErr(w, 400, "bad finding id")
+		localizedErr(w, r, 400, "bad finding id")
 		return
 	}
 	var req struct {
@@ -76,53 +76,53 @@ func (s *Server) startFindingRetest(w http.ResponseWriter, r *http.Request) {
 	}
 	req.Notes = strings.TrimSpace(req.Notes)
 	if utf8.RuneCountInString(req.Notes) > 4000 {
-		writeErr(w, 400, "复测补充说明最多 4000 个字符")
+		localizedErr(w, r, 400, "复测补充说明最多 4000 个字符")
 		return
 	}
 	f, err := pg.GetFinding(id)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	if f == nil {
-		writeErr(w, 404, "finding not found")
+		localizedErr(w, r, 404, "finding not found")
 		return
 	}
 	a, err := pg.GetAgentByKey(db.FindingRetestAgentKey)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	if a == nil || !a.Enabled {
-		writeErr(w, 409, "漏洞复测 Agent 不存在或未启用，请在 Agent 管理中配置 retester")
+		localizedErr(w, r, 409, "漏洞复测 Agent 不存在或未启用，请在 Agent 管理中配置 retester")
 		return
 	}
 	for _, key := range []string{"get_finding_retest_context", "record_finding_retest_result"} {
 		t, err := pg.GetTool(key)
 		if err != nil {
-			writeErr(w, 500, err.Error())
+			localizedErr(w, r, 500, err.Error())
 			return
 		}
 		if t == nil || !t.Enabled || !slices.Contains(t.Agents, a.Key) {
-			writeErr(w, 409, "请为复测 Agent 启用并绑定工具："+key)
+			localizedErr(w, r, 409, "请为复测 Agent 启用并绑定工具："+key)
 			return
 		}
 	}
 	if s.resolveChatAgent(&db.Conversation{AgentKey: a.Key}) == nil {
-		writeErr(w, 503, s.chatUnavailableReason())
+		localizedErr(w, r, 503, s.chatUnavailableReason())
 		return
 	}
 	if s.ctx.Err() != nil {
-		writeErr(w, 503, "服务正在停止")
+		localizedErr(w, r, 503, "服务正在停止")
 		return
 	}
 	retest, conv, created, err := pg.CreateFindingRetest(r.Context(), id, req.Notes)
 	if errors.Is(err, sql.ErrNoRows) {
-		writeErr(w, 404, "finding not found")
+		localizedErr(w, r, 404, "finding not found")
 		return
 	}
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	if created {

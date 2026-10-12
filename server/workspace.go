@@ -59,21 +59,21 @@ type wsEntry struct {
 func (s *Server) wsList(w http.ResponseWriter, r *http.Request) {
 	abs, ok := s.wsResolve(r.URL.Query().Get("path"))
 	if !ok {
-		writeErr(w, 400, "非法路径")
+		localizedErr(w, r, 400, "非法路径")
 		return
 	}
 	fi, err := os.Stat(abs)
 	if err != nil {
-		writeErr(w, 404, "路径不存在")
+		localizedErr(w, r, 404, "路径不存在")
 		return
 	}
 	if !fi.IsDir() {
-		writeErr(w, 400, "不是目录")
+		localizedErr(w, r, 400, "不是目录")
 		return
 	}
 	ents, err := os.ReadDir(abs)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	out := make([]wsEntry, 0, len(ents))
@@ -105,16 +105,16 @@ func (s *Server) wsList(w http.ResponseWriter, r *http.Request) {
 func (s *Server) wsRead(w http.ResponseWriter, r *http.Request) {
 	abs, ok := s.wsResolve(r.URL.Query().Get("path"))
 	if !ok {
-		writeErr(w, 400, "非法路径")
+		localizedErr(w, r, 400, "非法路径")
 		return
 	}
 	fi, err := os.Stat(abs)
 	if err != nil {
-		writeErr(w, 404, "文件不存在")
+		localizedErr(w, r, 404, "文件不存在")
 		return
 	}
 	if fi.IsDir() {
-		writeErr(w, 400, "是目录，不能作为文件读取")
+		localizedErr(w, r, 400, "是目录，不能作为文件读取")
 		return
 	}
 	if fi.Size() > maxWorkspaceRead {
@@ -123,7 +123,7 @@ func (s *Server) wsRead(w http.ResponseWriter, r *http.Request) {
 	}
 	data, err := os.ReadFile(abs)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	if bytes.IndexByte(data, 0) >= 0 || !utf8.Valid(data) {
@@ -140,24 +140,24 @@ func (s *Server) wsWrite(w http.ResponseWriter, r *http.Request) {
 		Content string `json:"content"`
 	}
 	if err := decode(r, &req); err != nil {
-		writeErr(w, 400, err.Error())
+		localizedErr(w, r, 400, err.Error())
 		return
 	}
 	abs, ok := s.wsResolve(req.Path)
 	if !ok || abs == filepath.Clean(s.m.dir) {
-		writeErr(w, 400, "非法路径")
+		localizedErr(w, r, 400, "非法路径")
 		return
 	}
 	if fi, err := os.Stat(abs); err == nil && fi.IsDir() {
-		writeErr(w, 400, "目标是目录")
+		localizedErr(w, r, 400, "目标是目录")
 		return
 	}
 	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	if err := os.WriteFile(abs, []byte(req.Content), 0o644); err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true, "path": s.wsRel(abs)})
@@ -169,16 +169,16 @@ func (s *Server) wsMkdir(w http.ResponseWriter, r *http.Request) {
 		Path string `json:"path"`
 	}
 	if err := decode(r, &req); err != nil {
-		writeErr(w, 400, err.Error())
+		localizedErr(w, r, 400, err.Error())
 		return
 	}
 	abs, ok := s.wsResolve(req.Path)
 	if !ok || abs == filepath.Clean(s.m.dir) {
-		writeErr(w, 400, "非法路径")
+		localizedErr(w, r, 400, "非法路径")
 		return
 	}
 	if err := os.MkdirAll(abs, 0o755); err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true, "path": s.wsRel(abs)})
@@ -189,19 +189,19 @@ func (s *Server) wsMkdir(w http.ResponseWriter, r *http.Request) {
 func (s *Server) wsDelete(w http.ResponseWriter, r *http.Request) {
 	abs, ok := s.wsResolve(r.URL.Query().Get("path"))
 	if !ok {
-		writeErr(w, 400, "非法路径")
+		localizedErr(w, r, 400, "非法路径")
 		return
 	}
 	if abs == filepath.Clean(s.m.dir) {
-		writeErr(w, 400, "不能删除工作区根目录")
+		localizedErr(w, r, 400, "不能删除工作区根目录")
 		return
 	}
 	if _, err := os.Stat(abs); err != nil {
-		writeErr(w, 404, "路径不存在")
+		localizedErr(w, r, 404, "路径不存在")
 		return
 	}
 	if err := os.RemoveAll(abs); err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
@@ -211,12 +211,12 @@ func (s *Server) wsDelete(w http.ResponseWriter, r *http.Request) {
 func (s *Server) wsDownload(w http.ResponseWriter, r *http.Request) {
 	abs, ok := s.wsResolve(r.URL.Query().Get("path"))
 	if !ok {
-		writeErr(w, 400, "非法路径")
+		localizedErr(w, r, 400, "非法路径")
 		return
 	}
 	fi, err := os.Stat(abs)
 	if err != nil || fi.IsDir() {
-		writeErr(w, 404, "文件不存在")
+		localizedErr(w, r, 404, "文件不存在")
 		return
 	}
 	name := filepath.Base(abs)
@@ -229,21 +229,21 @@ func (s *Server) wsDownload(w http.ResponseWriter, r *http.Request) {
 func (s *Server) wsUpload(w http.ResponseWriter, r *http.Request) {
 	dirAbs, ok := s.wsResolve(r.URL.Query().Get("path"))
 	if !ok {
-		writeErr(w, 400, "非法路径")
+		localizedErr(w, r, 400, "非法路径")
 		return
 	}
 	if fi, err := os.Stat(dirAbs); err != nil || !fi.IsDir() {
-		writeErr(w, 400, "目标目录不存在")
+		localizedErr(w, r, 400, "目标目录不存在")
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxWorkspaceUpload)
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		writeErr(w, 400, "解析上传失败或超出大小限制："+err.Error())
+		localizedErr(w, r, 400, "解析上传失败或超出大小限制："+err.Error())
 		return
 	}
 	files := r.MultipartForm.File["file"]
 	if len(files) == 0 {
-		writeErr(w, 400, "缺少上传文件(表单字段 file)")
+		localizedErr(w, r, 400, "缺少上传文件(表单字段 file)")
 		return
 	}
 	saved := 0
@@ -257,7 +257,7 @@ func (s *Server) wsUpload(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if err := saveUpload(hdr, destAbs); err != nil {
-			writeErr(w, 500, err.Error())
+			localizedErr(w, r, 500, err.Error())
 			return
 		}
 		saved++

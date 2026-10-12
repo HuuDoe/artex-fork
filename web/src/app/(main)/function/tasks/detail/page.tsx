@@ -37,6 +37,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import type { LLMProfile, Task } from "@/lib/types";
 
 import { AssetsTab } from "./_tabs/assets-tab";
@@ -203,6 +204,7 @@ function TaskLLMControl({ task, profiles, onUpdated }: { task: Task; profiles: L
 }
 
 function TaskDetailInner() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id") ?? "";

@@ -23,9 +23,9 @@ func decodeCompanyMutationRequest(w http.ResponseWriter, r *http.Request, value 
 	if err := json.NewDecoder(r.Body).Decode(value); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			writeErr(w, http.StatusRequestEntityTooLarge, "请求正文过大")
+			localizedErr(w, r, http.StatusRequestEntityTooLarge, "请求正文过大")
 		} else {
-			writeErr(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+			localizedErr(w, r, http.StatusBadRequest, "invalid JSON: "+err.Error())
 		}
 		return false
 	}
@@ -77,12 +77,12 @@ func (s *Server) companyStore() *db.CompanyStore {
 func (s *Server) listCompanies(w http.ResponseWriter, r *http.Request) {
 	cs := s.companyStore()
 	if cs == nil {
-		writeErr(w, 503, "database unavailable")
+		localizedErr(w, r, 503, "database unavailable")
 		return
 	}
 	companies, err := cs.ListCompanies()
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	writeJSON(w, 200, companies)
@@ -95,7 +95,7 @@ func (s *Server) listCompanies(w http.ResponseWriter, r *http.Request) {
 func (s *Server) createCompany(w http.ResponseWriter, r *http.Request) {
 	cs := s.companyStore()
 	if cs == nil {
-		writeErr(w, 503, "database unavailable")
+		localizedErr(w, r, 503, "database unavailable")
 		return
 	}
 	var req struct {
@@ -108,25 +108,25 @@ func (s *Server) createCompany(w http.ResponseWriter, r *http.Request) {
 	}
 	req.Name = strings.TrimSpace(req.Name)
 	if req.Name == "" {
-		writeErr(w, 400, "name required")
+		localizedErr(w, r, 400, "name required")
 		return
 	}
 	if err := db.ValidateCompanyScopeInputBounds(req.Scope); err != nil {
-		writeErr(w, http.StatusBadRequest, err.Error())
+		localizedErr(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 	id, added, skipped, invalid, scopeErrs, err := cs.CreateCompanyWithScope(req.Name, req.Logo, req.Scope, "api")
 	if err != nil {
 		if errors.Is(err, db.ErrCompanyNameConflict) {
-			writeErr(w, http.StatusConflict, "企业名称已存在")
+			localizedErr(w, r, http.StatusConflict, "企业名称已存在")
 			return
 		}
 		var validationErr *db.CompanyScopeValidationError
 		if errors.As(err, &validationErr) {
-			writeErr(w, http.StatusBadRequest, validationErr.Error())
+			localizedErr(w, r, http.StatusBadRequest, validationErr.Error())
 			return
 		}
-		writeErr(w, http.StatusInternalServerError, err.Error())
+		localizedErr(w, r, http.StatusInternalServerError, err.Error())
 		return
 	}
 	out := map[string]any{
@@ -149,26 +149,26 @@ func (s *Server) createCompany(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getCompany(w http.ResponseWriter, r *http.Request) {
 	cs := s.companyStore()
 	if cs == nil {
-		writeErr(w, 503, "database unavailable")
+		localizedErr(w, r, 503, "database unavailable")
 		return
 	}
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		writeErr(w, 400, "invalid id")
+		localizedErr(w, r, 400, "invalid id")
 		return
 	}
 	c, err := cs.GetCompany(id)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	if c == nil {
-		writeErr(w, 404, "company not found")
+		localizedErr(w, r, 404, "company not found")
 		return
 	}
 	scope, err := cs.GetScope(id)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"company": c, "scope": scope})
@@ -181,12 +181,12 @@ func (s *Server) getCompany(w http.ResponseWriter, r *http.Request) {
 func (s *Server) addCompanyScope(w http.ResponseWriter, r *http.Request) {
 	cs := s.companyStore()
 	if cs == nil {
-		writeErr(w, 503, "database unavailable")
+		localizedErr(w, r, 503, "database unavailable")
 		return
 	}
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		writeErr(w, 400, "invalid company id")
+		localizedErr(w, r, 400, "invalid company id")
 		return
 	}
 	var req struct {
@@ -198,7 +198,7 @@ func (s *Server) addCompanyScope(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := db.ValidateCompanyScopeInputBounds(req.Scope); err != nil {
-		writeErr(w, http.StatusBadRequest, err.Error())
+		localizedErr(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 	var added, skipped, invalid int
@@ -211,15 +211,15 @@ func (s *Server) addCompanyScope(w http.ResponseWriter, r *http.Request) {
 	}
 	if mutationErr != nil {
 		if errors.Is(mutationErr, db.ErrCompanyNotFound) {
-			writeErr(w, http.StatusNotFound, "company not found")
+			localizedErr(w, r, http.StatusNotFound, "company not found")
 			return
 		}
 		var validationErr *db.CompanyScopeValidationError
 		if errors.As(mutationErr, &validationErr) {
-			writeErr(w, http.StatusBadRequest, validationErr.Error())
+			localizedErr(w, r, http.StatusBadRequest, validationErr.Error())
 			return
 		}
-		writeErr(w, http.StatusInternalServerError, mutationErr.Error())
+		localizedErr(w, r, http.StatusInternalServerError, mutationErr.Error())
 		return
 	}
 	out := map[string]any{
@@ -247,12 +247,12 @@ func (s *Server) addCompanyScope(w http.ResponseWriter, r *http.Request) {
 func (s *Server) deleteCompany(w http.ResponseWriter, r *http.Request) {
 	cs := s.companyStore()
 	if cs == nil {
-		writeErr(w, 503, "database unavailable")
+		localizedErr(w, r, 503, "database unavailable")
 		return
 	}
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		writeErr(w, 400, "invalid id")
+		localizedErr(w, r, 400, "invalid id")
 		return
 	}
 	var req struct {
@@ -263,16 +263,16 @@ func (s *Server) deleteCompany(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&req); err != nil {
 		if !errors.Is(err, io.EOF) {
-			writeErr(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+			localizedErr(w, r, http.StatusBadRequest, "invalid JSON: "+err.Error())
 			return
 		}
 	} else {
 		var trailing any
 		if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
 			if err == nil {
-				writeErr(w, http.StatusBadRequest, "invalid JSON: multiple values")
+				localizedErr(w, r, http.StatusBadRequest, "invalid JSON: multiple values")
 			} else {
-				writeErr(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+				localizedErr(w, r, http.StatusBadRequest, "invalid JSON: "+err.Error())
 			}
 			return
 		}
@@ -281,10 +281,10 @@ func (s *Server) deleteCompany(w http.ResponseWriter, r *http.Request) {
 	assetsDeleted, err := s.m.DeleteCompanyWithAssets(id, req.DeleteAssets)
 	if err != nil {
 		if errors.Is(err, db.ErrCompanyNotFound) {
-			writeErr(w, http.StatusNotFound, "company not found")
+			localizedErr(w, r, http.StatusNotFound, "company not found")
 			return
 		}
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"deleted": 1, "assets_deleted": assetsDeleted})
@@ -297,11 +297,11 @@ func (s *Server) deleteCompany(w http.ResponseWriter, r *http.Request) {
 func (s *Server) reattribute(w http.ResponseWriter, r *http.Request) {
 	cs := s.companyStore()
 	if cs == nil {
-		writeErr(w, 503, "database unavailable")
+		localizedErr(w, r, 503, "database unavailable")
 		return
 	}
 	if err := cs.RecomputeAttribution(); err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
@@ -319,7 +319,7 @@ const (
 func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 	as := s.assetStore()
 	if as == nil {
-		writeErr(w, 503, "database unavailable")
+		localizedErr(w, r, 503, "database unavailable")
 		return
 	}
 	q := r.URL.Query()
@@ -343,7 +343,7 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 
 	if dsl := q.Get("dsl"); dsl != "" {
 		if err := db.ValidateDSL(dsl); err != nil {
-			writeErr(w, http.StatusBadRequest, err.Error())
+			localizedErr(w, r, http.StatusBadRequest, err.Error())
 			return
 		}
 		// task_id scopes the DSL search to a task's assets (the task detail
@@ -379,7 +379,7 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		writeErr(w, http.StatusInternalServerError, err.Error())
+		localizedErr(w, r, http.StatusInternalServerError, err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{
@@ -396,7 +396,7 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 func (s *Server) assetCounts(w http.ResponseWriter, r *http.Request) {
 	as := s.assetStore()
 	if as == nil {
-		writeErr(w, 503, "database unavailable")
+		localizedErr(w, r, 503, "database unavailable")
 		return
 	}
 	var counts map[string]int
@@ -407,7 +407,7 @@ func (s *Server) assetCounts(w http.ResponseWriter, r *http.Request) {
 		counts, err = as.CountsByType()
 	}
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	writeJSON(w, 200, counts)
@@ -420,23 +420,23 @@ func (s *Server) assetCounts(w http.ResponseWriter, r *http.Request) {
 func (s *Server) deleteAssets(w http.ResponseWriter, r *http.Request) {
 	as := s.assetStore()
 	if as == nil {
-		writeErr(w, 503, "database unavailable")
+		localizedErr(w, r, 503, "database unavailable")
 		return
 	}
 	var req struct {
 		IDs []int64 `json:"ids"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErr(w, 400, "invalid JSON: "+err.Error())
+		localizedErr(w, r, 400, "invalid JSON: "+err.Error())
 		return
 	}
 	if len(req.IDs) == 0 {
-		writeErr(w, 400, "ids required")
+		localizedErr(w, r, 400, "ids required")
 		return
 	}
 	deleted, err := as.DeleteByIDs(req.IDs)
 	if err != nil {
-		writeErr(w, 500, err.Error())
+		localizedErr(w, r, 500, err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"deleted": deleted})
@@ -449,7 +449,7 @@ func (s *Server) deleteAssets(w http.ResponseWriter, r *http.Request) {
 func (s *Server) insertAssets(w http.ResponseWriter, r *http.Request) {
 	as := s.assetStore()
 	if as == nil {
-		writeErr(w, 503, "database unavailable")
+		localizedErr(w, r, 503, "database unavailable")
 		return
 	}
 	var req struct {
@@ -489,7 +489,7 @@ func (s *Server) insertAssets(w http.ResponseWriter, r *http.Request) {
 		} `json:"assets"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErr(w, 400, "invalid JSON: "+err.Error())
+		localizedErr(w, r, 400, "invalid JSON: "+err.Error())
 		return
 	}
 
