@@ -172,7 +172,7 @@ function DataSourceCard({
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>{t("sync.mcpUrl")}</Label>
-                <Input placeholder="http://<主机>:8082/mcp" value={url} onChange={(e) => setUrl(e.target.value)} />
+                <Input placeholder={t("sync.mcpUrlPlaceholder")} value={url} onChange={(e) => setUrl(e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label>{t("sync.apiKey")}</Label>

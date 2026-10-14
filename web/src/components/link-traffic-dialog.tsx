@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/lib/i18n";
 import { api } from "@/lib/api";
 import type { Finding, FindingsPage } from "@/lib/types";
 
@@ -28,6 +29,7 @@ export function LinkTrafficDialog({
   onClose: () => void;
   onBound: () => void;
 }) {
+  const { t } = useI18n();
   const [query, setQuery] = React.useState("");
   const [page, setPage] = React.useState(1);
   const [data, setData] = React.useState<FindingsPage | null>(null);
@@ -66,7 +68,7 @@ export function LinkTrafficDialog({
         selected.finding_id,
         trafficIds.map((traffic_id) => ({ traffic_id })),
       );
-      toast.success(`已关联 ${trafficIds.length} 条流量到漏洞 #${selected.finding_id}`);
+      toast.success(t("traffic.link.toastSuccess", { count: trafficIds.length, id: selected.finding_id }));
       onBound();
       onClose();
     } catch (e) {
@@ -84,15 +86,15 @@ export function LinkTrafficDialog({
     >
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>关联到漏洞</DialogTitle>
-          <DialogDescription>将所选 {trafficIds.length} 条流量保存为已有漏洞的证据。</DialogDescription>
+          <DialogTitle>{t("traffic.linkToVulnerability")}</DialogTitle>
+          <DialogDescription>{t("traffic.link.description", { count: trafficIds.length })}</DialogDescription>
         </DialogHeader>
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor="link-finding-query">查找漏洞</FieldLabel>
+            <FieldLabel htmlFor="link-finding-query">{t("traffic.link.searchLabel")}</FieldLabel>
             <Input
               id="link-finding-query"
-              placeholder="名称 / 摘要 / 漏洞类别"
+              placeholder={t("traffic.link.searchPlaceholder")}
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -126,16 +128,16 @@ export function LinkTrafficDialog({
           ))}
           {!data?.items.length ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              {loading ? "加载中…" : "没有匹配的漏洞，请先登记漏洞"}
+              {loading ? t("findings.loading") : t("traffic.link.noFindings")}
             </p>
           ) : null}
         </div>
         <div className="flex items-center justify-between gap-2">
           <Button variant="outline" size="sm" disabled={loading || page <= 1} onClick={() => setPage((p) => p - 1)}>
-            上一页
+            {t("traffic.previousPage")}
           </Button>
           <span className="text-xs">
-            第 {page} 页 · 共 {data?.total ?? 0} 条
+            {t("traffic.link.pageAndTotal", { page, total: data?.total ?? 0 })}
           </span>
           <Button
             variant="outline"
@@ -143,18 +145,23 @@ export function LinkTrafficDialog({
             disabled={loading || page * 20 >= (data?.total ?? 0)}
             onClick={() => setPage((p) => p + 1)}
           >
-            下一页
+            {t("traffic.nextPage")}
           </Button>
         </div>
         <p className="text-sm">
-          {selected ? `已选漏洞：#${selected.finding_id} ${selected.name || selected.vulnclass}` : "请选择一个漏洞"}
+          {selected
+            ? t("traffic.link.selectedFinding", {
+                id: selected.finding_id ?? "",
+                name: selected.name || selected.vulnclass || "",
+              })
+            : t("traffic.link.pleaseSelect")}
         </p>
         <DialogFooter>
           <Button variant="outline" disabled={busy} onClick={onClose}>
-            取消
+            {t("action.cancel")}
           </Button>
           <Button disabled={busy || !selected} onClick={() => void save()}>
-            {busy ? "保存中…" : "确认关联"}
+            {busy ? t("action.saving") : t("traffic.link.confirm")}
           </Button>
         </DialogFooter>
       </DialogContent>

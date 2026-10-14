@@ -51,7 +51,7 @@ function fmtTime(value?: string) {
 function source(row: InterceptApprovalRow) {
   if (row.decision_source) return row.decision_source;
   if (row.rule_id) return "rule";
-  return row.reason?.startsWith("[模型]") ? "model" : "unknown";
+  return row.reason?.startsWith("[模型]") || row.reason?.startsWith("[Model]") ? "model" : "unknown";
 }
 
 function originLabel(row: InterceptApprovalRow, t?: (k: string, v?: Record<string, string | number>) => string) {
@@ -118,7 +118,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function MatchCell({ row, showReason = true }: { row: InterceptApprovalRow; showReason?: boolean }) {
   const { t } = useI18n();
-  const reason = row.reason?.replace(/^\[模型\]\s*/, "");
+  const reason = row.reason?.replace(/^\[(?:模型|Model)\]\s*/i, "");
   return (
     <div className="flex min-w-0 flex-col gap-1">
       {source(row) === "model" ? (
@@ -390,7 +390,7 @@ export function ApprovalDetail({
             <MatchCell row={current} showReason={false} />
           </div>
           <p className="whitespace-pre-wrap break-words text-sm leading-7 [overflow-wrap:anywhere]">
-            {current.reason?.replace(/^\[模型\]\s*/, "") || t("approval.detail.noReason")}
+            {current.reason?.replace(/^\[(?:模型|Model)\]\s*/i, "") || t("approval.detail.noReason")}
           </p>
           {audit?.decision_reason ? <p className="text-sm">{audit.decision_reason}</p> : null}
           {audit?.effective_action ? <p className="text-sm">{t("approval.detail.effectiveAction", { action: actionLabels[audit.effective_action] ?? audit.effective_action })}</p> : null}
@@ -507,7 +507,7 @@ export function ApprovalDetail({
               ) : null}
               <CodeBlock
                 label={`${initialLabel}：${actionLabels[audit.initial_action] ?? audit.initial_action}`}
-                text={audit.initial_reason.replace(/^\[模型\]\s*/, "")}
+                text={audit.initial_reason.replace(/^\[(?:模型|Model)\]\s*/i, "")}
               />
               <CodeBlock
                 label={t("approval.detail.executionOutput")}

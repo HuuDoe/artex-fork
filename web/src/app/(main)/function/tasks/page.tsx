@@ -153,7 +153,7 @@ const LEGACY_UPLOAD_MARKER = "【上传文件（绝对路径）】";
 // first upload adds the header, later uploads append bullets under it.
 function appendUploads(desc: string, atts: ChatAttachment[], t?: TranslateFn): string {
   const marker = t ? t("tasks.new.uploadMarker") : LEGACY_UPLOAD_MARKER;
-  const hint = t ? t("tasks.new.uploadWorkerHint") : "worker 可用 Read/Bash 按路径打开：";
+  const hint = t ? t("tasks.new.uploadWorkerHint") : "worker can open via path with Read/Bash:";
   const bullets = atts.map((a) => `- ${a.abs ?? a.path}（${fmtBytes(a.size)}）`).join("\n");
   if (desc.includes(LEGACY_UPLOAD_MARKER) || desc.includes(marker)) {
     return `${desc.replace(/\s*$/, "")}\n${bullets}\n`;
@@ -1608,7 +1608,7 @@ function formatArchiveBytes(bytes: number): string {
 function archiveCompressionLabel(archive: TaskArchive, t?: TranslateFn): string {
   if (archive.original_size <= 0 || archive.compressed_size <= 0) return "—";
   const saved = Math.max(0, 100 - (archive.compressed_size / archive.original_size) * 100);
-  const savedStr = t ? t("tasks.archive.savedPercent", { percent: saved.toFixed(0) }) : `节省 ${saved.toFixed(0)}%`;
+  const savedStr = t ? t("tasks.archive.savedPercent", { percent: saved.toFixed(0) }) : `Saved ${saved.toFixed(0)}%`;
   return `${formatArchiveBytes(archive.compressed_size)} · ${savedStr}`;
 }
 
@@ -1704,7 +1704,7 @@ function TaskArchivesPanel({ onChanged }: { onChanged: () => void }) {
         let restored = false;
         states.forEach((state, index) => {
           if (state.status !== "rejected" || !(state.reason instanceof Error)) return;
-          if (!state.reason.message.includes("归档不存在")) return;
+          if (!state.reason.message.includes("归档不存在") && !state.reason.message.toLowerCase().includes("not found")) return;
           pendingRestoreIDs.current.delete(pending[index]);
           restored = true;
         });
@@ -2584,20 +2584,20 @@ function CategoryPicker({
 }
 
 function getCompanyScopeLabel(kind: string, t?: TranslateFn): string {
-  if (kind === "domain") return t ? t("tasks.companyScope.domain") : "域名";
-  if (kind === "keyword") return t ? t("tasks.companyScope.keyword") : "关键词";
+  if (kind === "domain") return t ? t("tasks.companyScope.domain") : "Domain";
+  if (kind === "keyword") return t ? t("tasks.companyScope.keyword") : "Keyword";
   return kind.toUpperCase();
 }
 
 function companyScopeSummary(company: Company, t?: TranslateFn): string {
   const rows = company.scope ?? [];
-  if (rows.length === 0) return t ? t("tasks.companyScope.notConfigured") : "未配置资产范围";
+  if (rows.length === 0) return t ? t("tasks.companyScope.notConfigured") : "Scope not configured";
   const preview = rows.slice(0, 3).map((row) => {
     const value = row.raw || row.value || row.domain || row.net || "";
-    return `${getCompanyScopeLabel(row.kind, t)}：${value}`;
+    return `${getCompanyScopeLabel(row.kind, t)}: ${value}`;
   });
   const more = rows.length > preview.length
-    ? (t ? t("tasks.companyScope.moreItems", { count: rows.length - preview.length }) : ` · 另 ${rows.length - preview.length} 条`)
+    ? (t ? t("tasks.companyScope.moreItems", { count: rows.length - preview.length }) : ` · ${rows.length - preview.length} more`)
     : "";
   return `${preview.join(" · ")}${more}`;
 }

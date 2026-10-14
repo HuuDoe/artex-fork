@@ -545,12 +545,12 @@ export default function SkillsPage() {
     setDetailMcps(next);
     try {
       await api.updateSkillMeta(skillName, { mcps: next });
-      toast.success(`${mcpOn ? "Linked" : "Unlinked"} "${mcpName}"`);
+      toast.success(mcpOn ? t("skills.toast.linkedMcp", { name: mcpName }) : t("skills.toast.unlinkedMcp", { name: mcpName }));
       load();
     } catch (e) {
       // roll back on error
       setDetailMcps(detailMcps);
-      toast.error("Operation failed: " + (e as Error).message);
+      toast.error(t("common.operateFailed", { message: (e as Error).message }));
     }
   }
 

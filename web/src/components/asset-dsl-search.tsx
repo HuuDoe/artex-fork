@@ -5,177 +5,64 @@ import * as React from "react";
 import { SearchIcon } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 // ── DSL autocomplete ──────────────────────────────────────────────────────────
 // Shared by the global asset view (/function/assets) and the per-task 测试资产
 // search, so both search boxes behave and look identical.
 
-const DSL_FIELDS: { name: string; desc: string; ops: { op: string; desc: string }[] }[] = [
-  {
-    name: "domain",
-    desc: "域名（根域名/子域名/服务域名）",
-    ops: [
-      { op: "=", desc: "模糊匹配" },
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "ip",
-    desc: "IPv4/IPv6 地址",
-    ops: [
-      { op: "=", desc: "模糊匹配" },
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "url",
-    desc: "完整 URL（服务/接口）",
-    ops: [
-      { op: "=", desc: "模糊匹配" },
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "root_domain",
-    desc: "根域名",
-    ops: [
-      { op: "=", desc: "模糊匹配" },
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "page_title",
-    desc: "页面标题（HTTP 服务）",
-    ops: [
-      { op: "=", desc: "模糊匹配" },
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "icp",
-    desc: "ICP 备案号",
-    ops: [
-      { op: "=", desc: "模糊匹配" },
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "service_name",
-    desc: "服务名称（非 HTTP 服务）",
-    ops: [
-      { op: "=", desc: "模糊匹配" },
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "app_name",
-    desc: "应用名称",
-    ops: [
-      { op: "=", desc: "模糊匹配" },
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "bundle_id",
-    desc: "应用 Bundle ID",
-    ops: [
-      { op: "=", desc: "模糊匹配" },
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "category",
-    desc: "应用分类",
-    ops: [
-      { op: "=", desc: "模糊匹配" },
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "app_icp",
-    desc: "应用 ICP 备案",
-    ops: [
-      { op: "=", desc: "模糊匹配" },
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "method",
-    desc: "HTTP 方法 GET/POST/PUT/…",
-    ops: [
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "service_type",
-    desc: "服务类型：http | other",
-    ops: [
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "record_type",
-    desc: "DNS 解析类型 A/CNAME/MX/…",
-    ops: [
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "technology",
-    desc: "技术指纹（数组字段）",
-    ops: [
-      { op: "=", desc: "模糊匹配" },
-      { op: "==", desc: "精确匹配" },
-      { op: "!=", desc: "排除" },
-    ],
-  },
-  {
-    name: "port",
-    desc: "端口号（整数）",
-    ops: [
-      { op: "==", desc: "等于" },
-      { op: "!=", desc: "不等于" },
-      { op: ">", desc: "大于" },
-      { op: ">=", desc: "大于等于" },
-      { op: "<", desc: "小于" },
-      { op: "<=", desc: "小于等于" },
-    ],
-  },
-  {
-    name: "status_code",
-    desc: "HTTP 状态码（整数）",
-    ops: [
-      { op: "==", desc: "等于" },
-      { op: "!=", desc: "不等于" },
-      { op: ">", desc: "大于" },
-      { op: ">=", desc: "大于等于" },
-      { op: "<", desc: "小于" },
-      { op: "<=", desc: "小于等于" },
-    ],
-  },
-  { name: "company_id", desc: "归属企业 ID（整数）", ops: [{ op: "==", desc: "等于" }] },
-  { name: "task_id", desc: "来源任务 ID（整数）", ops: [{ op: "==", desc: "等于" }] },
-];
+function getDslFields(t: (k: string) => string): { name: string; desc: string; ops: { op: string; desc: string }[] }[] {
+  const fuzzy = t("assetDsl.op.fuzzyMatch");
+  const exact = t("assetDsl.op.exactMatch");
+  const exclude = t("assetDsl.op.exclude");
+  const textOps = [
+    { op: "=", desc: fuzzy },
+    { op: "==", desc: exact },
+    { op: "!=", desc: exclude },
+  ];
+  const numOps = [
+    { op: "==", desc: t("assetDsl.op.equal") },
+    { op: "!=", desc: t("assetDsl.op.notEqual") },
+    { op: ">", desc: t("assetDsl.op.greaterThan") },
+    { op: ">=", desc: t("assetDsl.op.greaterThanOrEqual") },
+    { op: "<", desc: t("assetDsl.op.lessThan") },
+    { op: "<=", desc: t("assetDsl.op.lessThanOrEqual") },
+  ];
+  const exactOnlyOps = [
+    { op: "==", desc: exact },
+    { op: "!=", desc: exclude },
+  ];
 
-const LOGIC_OPS = [
-  { label: "AND", desc: "且（两个条件都满足）" },
-  { label: "OR", desc: "或（满足其中之一）" },
-];
+  return [
+    { name: "domain", desc: t("assetDsl.field.domain"), ops: textOps },
+    { name: "ip", desc: t("assetDsl.field.ip"), ops: textOps },
+    { name: "url", desc: t("assetDsl.field.url"), ops: textOps },
+    { name: "root_domain", desc: t("assetDsl.field.rootDomain"), ops: textOps },
+    { name: "page_title", desc: t("assetDsl.field.pageTitle"), ops: textOps },
+    { name: "icp", desc: t("assetDsl.field.icp"), ops: textOps },
+    { name: "service_name", desc: t("assetDsl.field.serviceName"), ops: textOps },
+    { name: "app_name", desc: t("assetDsl.field.appName"), ops: textOps },
+    { name: "bundle_id", desc: t("assetDsl.field.bundleId"), ops: textOps },
+    { name: "category", desc: t("assetDsl.field.category"), ops: textOps },
+    { name: "app_icp", desc: t("assetDsl.field.appIcp"), ops: textOps },
+    { name: "method", desc: t("assetDsl.field.method"), ops: exactOnlyOps },
+    { name: "service_type", desc: t("assetDsl.field.serviceType"), ops: exactOnlyOps },
+    { name: "record_type", desc: t("assetDsl.field.recordType"), ops: exactOnlyOps },
+    { name: "technology", desc: t("assetDsl.field.technology"), ops: textOps },
+    { name: "port", desc: t("assetDsl.field.port"), ops: numOps },
+    { name: "status_code", desc: t("assetDsl.field.statusCode"), ops: numOps },
+    { name: "company_id", desc: t("assetDsl.field.companyId"), ops: [{ op: "==", desc: t("assetDsl.op.equal") }] },
+    { name: "task_id", desc: t("assetDsl.field.taskId"), ops: [{ op: "==", desc: t("assetDsl.op.equal") }] },
+  ];
+}
+
+function getLogicOps(t: (k: string) => string): { label: string; desc: string }[] {
+  return [
+    { label: "AND", desc: t("assetDsl.logic.andDesc") },
+    { label: "OR", desc: t("assetDsl.logic.orDesc") },
+  ];
+}
 
 interface DslSuggestion {
   kind: "field" | "operator" | "logic";
@@ -186,7 +73,9 @@ interface DslSuggestion {
   insertText: string;
 }
 
-function getDslSuggestions(text: string, cursor: number): DslSuggestion[] {
+function getDslSuggestions(text: string, cursor: number, t: (k: string) => string): DslSuggestion[] {
+  const dslFields = getDslFields(t);
+  const logicOps = getLogicOps(t);
   const before = text.slice(0, cursor);
   // Current token: non-whitespace, non-paren run ending at cursor
   const tokenMatch = before.match(/([^\s()]*$)/);
@@ -197,7 +86,7 @@ function getDslSuggestions(text: string, cursor: number): DslSuggestion[] {
   if (/^[a-z_]+(==|!=|>=|<=|=|>|<)/.test(currentToken)) return [];
 
   // Complete known field name → suggest operators for that field
-  const exactField = DSL_FIELDS.find((f) => f.name === currentToken.toLowerCase());
+  const exactField = dslFields.find((f) => f.name === currentToken.toLowerCase());
   if (exactField) {
     return exactField.ops.map(({ op, desc }) => ({
       kind: "operator",
@@ -215,7 +104,7 @@ function getDslSuggestions(text: string, cursor: number): DslSuggestion[] {
 
   // Current token is a prefix of AND/OR and follows a complete expression
   if (/^(a|an|and|o|or)$/i.test(currentToken) && afterExpression) {
-    return LOGIC_OPS.filter((l) => l.label.startsWith(currentToken.toUpperCase())).map(({ label, desc }) => ({
+    return logicOps.filter((l) => l.label.startsWith(currentToken.toUpperCase())).map(({ label, desc }) => ({
       kind: "logic",
       label,
       desc,
@@ -227,7 +116,7 @@ function getDslSuggestions(text: string, cursor: number): DslSuggestion[] {
 
   // No current token, after a complete expression → suggest AND/OR
   if (!currentToken && afterExpression) {
-    return LOGIC_OPS.map(({ label, desc }) => ({
+    return logicOps.map(({ label, desc }) => ({
       kind: "logic",
       label,
       desc,
@@ -239,7 +128,7 @@ function getDslSuggestions(text: string, cursor: number): DslSuggestion[] {
 
   // Default: suggest fields filtered by prefix
   const prefix = currentToken.toLowerCase();
-  return DSL_FIELDS.filter((f) => f.name.startsWith(prefix)).map((f) => ({
+  return dslFields.filter((f) => f.name.startsWith(prefix)).map((f) => ({
     kind: "field",
     label: f.name,
     desc: f.desc,
@@ -276,17 +165,21 @@ export function AssetDslSearch({
   error: string;
   count?: number;
 }) {
+  const { t } = useI18n();
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [suggestions, setSuggestions] = React.useState<DslSuggestion[]>([]);
   const [selIdx, setSelIdx] = React.useState(0);
   const [open, setOpen] = React.useState(false);
 
-  const refresh = React.useCallback((val: string, pos: number) => {
-    const suggs = getDslSuggestions(val, pos);
-    setSuggestions(suggs);
-    setSelIdx(0);
-    setOpen(suggs.length > 0);
-  }, []);
+  const refresh = React.useCallback(
+    (val: string, pos: number) => {
+      const suggs = getDslSuggestions(val, pos, t);
+      setSuggestions(suggs);
+      setSelIdx(0);
+      setOpen(suggs.length > 0);
+    },
+    [t],
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -341,7 +234,7 @@ export function AssetDslSearch({
         <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           ref={inputRef}
-          placeholder="DSL 搜索：domain=example AND status_code>=400"
+          placeholder={t("assetDsl.search.placeholder")}
           value={query}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
@@ -375,7 +268,7 @@ export function AssetDslSearch({
       </div>
       {query.trim() && !open && (
         <p className="pl-1 text-[11px] text-muted-foreground">
-          {loading ? "搜索中…" : error ? <span className="text-destructive">{error}</span> : `找到 ${count ?? 0} 条`}
+          {loading ? t("assetDsl.status.searching") : error ? <span className="text-destructive">{error}</span> : t("assetDsl.status.foundCount", { count: count ?? 0 })}
         </p>
       )}
     </div>

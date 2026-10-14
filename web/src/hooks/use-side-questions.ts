@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { sseUrl } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import { isBtwCommand, type SideExchange, type SideHistory, sideAPI } from "@/lib/side-questions";
 
 // crypto.randomUUID 仅在安全上下文可用(https/localhost);经 IP+http 访问时降级。
@@ -23,6 +24,7 @@ function merge(old: SideExchange[], incoming: SideExchange[]) {
 }
 
 export function useSideQuestions(parent: string | null) {
+  const { t } = useI18n();
   const [stateParent, setStateParent] = useState(parent);
   const current = stateParent === parent;
   const [open, setOpen] = useState(false);
@@ -138,7 +140,7 @@ export function useSideQuestions(parent: string | null) {
         restoreFailedDraft([item]);
         if (item.status !== "running") stream.close();
       } catch {
-        setError("旁路数据解析失败，请重新打开面板");
+        setError(t("sideQuestion.error.parseFailed"));
       }
     });
     stream.addEventListener("cleared", () => {

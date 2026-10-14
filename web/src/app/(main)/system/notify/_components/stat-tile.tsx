@@ -17,12 +17,12 @@ export function formatBacklog(ms: number, t?: (k: string, p?: Record<string, str
   if (!ms) return "—";
   if (ms < 60_000) {
     const s = Math.round(ms / 1000);
-    return t ? t("notify.backlog.seconds", { count: s }) : `${s} 秒`;
+    return t ? t("notify.backlog.seconds", { count: s }) : `${s}s`;
   }
   if (ms < 3_600_000) {
     const m = Math.round(ms / 60_000);
-    return t ? t("notify.backlog.minutes", { count: m }) : `${m} 分钟`;
+    return t ? t("notify.backlog.minutes", { count: m }) : `${m}m`;
   }
   const h = (ms / 3_600_000).toFixed(1);
-  return t ? t("notify.backlog.hours", { count: h }) : `${h} 小时`;
+  return t ? t("notify.backlog.hours", { count: h }) : `${h}h`;
 }

@@ -14,7 +14,7 @@ import {
   Trash2Icon,
 } from "lucide-react";
 
-import { useI18n } from "@/lib/i18n";
+import { toBcp47, useI18n } from "@/lib/i18n";
 import { CopyButton } from "@/components/copy-button";
 import { Markdown } from "@/components/markdown";
 import { StatusBadge } from "@/components/status-badge";
@@ -78,8 +78,8 @@ export function isSameFinding(left: Finding, right: Finding): boolean {
   return findingRowKey(left) === findingRowKey(right);
 }
 
-export function fmtTime(ts: string) {
-  return new Date(ts).toLocaleString("zh-CN", {
+export function fmtTime(ts: string, locale?: string) {
+  return new Date(ts).toLocaleString(locale ?? "zh-CN", {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
@@ -132,7 +132,7 @@ export function FindingsTable({
   onDelete,
   selectAllLabel,
 }: FindingsTableProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const effectiveSelectAllLabel = selectAllLabel ?? t("findings.table.selectAll");
   const selectableIds = items.map((finding) => finding.finding_id).filter((id): id is string => Boolean(id));
   const selectedCount = selectableIds.filter((id) => selectedIds.has(id)).length;
@@ -272,7 +272,7 @@ export function FindingsTable({
                     <span className="text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground tabular-nums">{fmtTime(f.ts)}</TableCell>
+                <TableCell className="text-xs text-muted-foreground tabular-nums">{fmtTime(f.ts, toBcp47(locale))}</TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1">
                     {retest ? (
@@ -311,11 +311,11 @@ export function FindingsTable({
                           <AlertDialogHeader>
                             <AlertDialogTitle>{t("findings.table.deleteConfirm")}</AlertDialogTitle>
                             <AlertDialogDescription className="break-words">
-                              「
+                              {locale === "zh-CN" ? "「" : '"'}
                               <span className="break-all">
                                 {f.name || f.vulnclass || f.summary || `#${f.finding_id}`}
                               </span>
-                              」{t("findings.table.deleteWarning")}
+                              {locale === "zh-CN" ? "」" : '" '}{t("findings.table.deleteWarning")}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
