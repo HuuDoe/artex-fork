@@ -12,10 +12,23 @@ export type ChatSendMode = "enter" | "ctrl-enter";
 export const CHAT_SEND_MODE_KEY = "artex_chat_send_mode";
 export const DEFAULT_CHAT_SEND_MODE: ChatSendMode = "enter";
 
-export const CHAT_SEND_MODE_OPTIONS: { value: ChatSendMode; label: string }[] = [
-  { value: "enter", label: "Enter 发送，Shift+Enter 换行" },
-  { value: "ctrl-enter", label: "Ctrl+Enter 发送，Enter 换行" },
+export const CHAT_SEND_MODE_OPTIONS: { value: ChatSendMode; label: string; labelKey: string }[] = [
+  { value: "enter", label: "Enter 发送，Shift+Enter 换行", labelKey: "settings.sendKey.enter" },
+  { value: "ctrl-enter", label: "Ctrl+Enter 发送，Enter 换行", labelKey: "settings.sendKey.ctrlEnter" },
 ];
+
+export function getChatSendModeOptions(t?: (key: string) => string): { value: ChatSendMode; label: string }[] {
+  return CHAT_SEND_MODE_OPTIONS.map((opt) => {
+    let label = opt.label;
+    if (t) {
+      const translated = t(opt.labelKey);
+      if (translated && translated !== opt.labelKey) {
+        label = translated;
+      }
+    }
+    return { value: opt.value, label };
+  });
+}
 
 function parseMode(raw: string | null): ChatSendMode {
   return raw === "ctrl-enter" || raw === "enter" ? raw : DEFAULT_CHAT_SEND_MODE;

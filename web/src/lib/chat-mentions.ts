@@ -42,6 +42,15 @@ export function mentionSearch(query: string) {
   return { kind: "" as const, query: query.trim(), categories };
 }
 
+export function getMentionKindLabel(kind: string, t?: (k: string) => string): string {
+  if (t) {
+    const key = `chat.mention.kind.${kind}`;
+    const val = t(key);
+    if (val && val !== key) return val;
+  }
+  return mentionKinds.find((entry) => entry.kind === kind)?.label ?? kind;
+}
+
 export function mentionToken(item: ChatMention) {
   const kind = mentionKinds.find((entry) => entry.kind === item.kind)?.label ?? "资产";
   const label = item.label
@@ -51,12 +60,17 @@ export function mentionToken(item: ChatMention) {
   return `@[${kind}#${item.id} ${label}]`;
 }
 
-export function selectedMentions(value: string) {
+export function selectedMentions(value: string, t?: (k: string) => string) {
   return [...value.matchAll(/@\[(漏洞|资产|企业|接口|IP|应用|域名|子域名|服务)#([0-9]+)(?: ([^\]\r\n]*))?\]/g)].map(
-    (match) => ({
-      token: match[0],
-      label: `${match[1]} #${match[2]}${match[3] ? ` · ${match[3]}` : ""}`,
-      start: match.index,
-    }),
+    (match) => {
+      const rawKind = match[1];
+      const kindEntry = mentionKinds.find((entry) => entry.label === rawKind);
+      const localizedKind = kindEntry ? getMentionKindLabel(kindEntry.kind, t) : rawKind;
+      return {
+        token: match[0],
+        label: `${localizedKind} #${match[2]}${match[3] ? ` · ${match[3]}` : ""}`,
+        start: match.index,
+      };
+    },
   );
 }
