@@ -62,3 +62,6 @@ Thumbs.db
 /bench/
 /Dockerfile.bench
 /Dockerfile.bench.v2
+
+# E2E test scripts
+/tests/
