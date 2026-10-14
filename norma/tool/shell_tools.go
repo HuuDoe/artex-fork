@@ -56,11 +56,11 @@ func jsonResult(v any) (Result, error) {
 
 func sessManager(tc *ToolContext) (*Manager, *Result) {
 	if InteractiveShellDisabled() {
-		r := Errorf("交互式 shell 已被全局停用(AGENT_CORE_DISABLE_INTERACTIVE_SHELL)")
+		r := Errorf("interactive shell has been globally disabled (AGENT_CORE_DISABLE_INTERACTIVE_SHELL)")
 		return nil, &r
 	}
 	if tc == nil || tc.Tasks == nil {
-		r := Errorf("交互式 shell 需要后台任务管理器(未启用)")
+		r := Errorf("interactive shell requires background task manager (not enabled)")
 		return nil, &r
 	}
 	return tc.Tasks, nil
@@ -103,7 +103,7 @@ func NewShellOpen() CoreTool {
 		}
 		_ = json.Unmarshal(in, &a)
 		if a.Command == "" {
-			return Errorf("command 必填"), nil
+			return Errorf("command is required"), nil
 		}
 		mode := a.Mode
 		if mode == "" {
@@ -112,17 +112,17 @@ func NewShellOpen() CoreTool {
 		switch mode {
 		case "hands-free", "interactive", "dispatch", "monitor":
 		default:
-			return Errorf("mode 需为 interactive | hands-free | dispatch | monitor"), nil
+			return Errorf("mode must be interactive | hands-free | dispatch | monitor"), nil
 		}
 		var watch []*regexp.Regexp
 		if mode == "monitor" {
 			if len(a.Watch) == 0 {
-				return Errorf("monitor 模式必须给 watch(要盯的关键词/正则)"), nil
+				return Errorf("monitor mode requires watch (keywords/regexes to watch)"), nil
 			}
 			for _, w := range a.Watch {
 				re, err := regexp.Compile(w)
 				if err != nil {
-					return Errorf("watch 正则无效 " + w + ": " + err.Error()), nil
+					return Errorf("invalid watch regex " + w + ": " + err.Error()), nil
 				}
 				watch = append(watch, re)
 			}
@@ -131,7 +131,7 @@ func NewShellOpen() CoreTool {
 		if a.PromptRegex != "" {
 			re, err := regexp.Compile(a.PromptRegex)
 			if err != nil {
-				return Errorf("prompt_regex 无效: " + err.Error()), nil
+				return Errorf("invalid prompt_regex: " + err.Error()), nil
 			}
 			pr = re
 		}
@@ -142,7 +142,7 @@ func NewShellOpen() CoreTool {
 		}
 		s, err := m.openSession(a.Command, workDir, env, a.Rows, a.Cols, mode, pr)
 		if err != nil {
-			return Errorf("开启会话失败: " + err.Error()), nil
+			return Errorf("failed to open session: " + err.Error()), nil
 		}
 		quiet, grace := ms(a.QuietMs, sessDefQuietMs), ms(a.StartupGraceMs, sessDefGraceMs)
 		switch mode {
@@ -197,10 +197,10 @@ func NewShellSend() CoreTool {
 		_ = json.Unmarshal(in, &a)
 		s, ok := m.session(a.SessionID)
 		if !ok {
-			return Errorf("会话不存在: " + a.SessionID), nil
+			return Errorf("session does not exist: " + a.SessionID), nil
 		}
 		if !s.running() {
-			return Errorf("会话已结束(exit " + fmtExit(s.exit()) + ")，用 shell_read 读取尾部输出或 shell_close"), nil
+			return Errorf("session has ended (exit " + fmtExit(s.exit()) + "), use shell_read to read trailing output or shell_close"), nil
 		}
 		before := s.total
 		// build & write input in order: text, submit(\r), keys, hex, paste
@@ -215,7 +215,7 @@ func NewShellSend() CoreTool {
 			if b, ok := keyToBytes(k); ok {
 				payload = append(payload, b...)
 			} else {
-				return Errorf("未知按键: " + k), nil
+				return Errorf("unknown key: " + k), nil
 			}
 		}
 		if len(a.Hex) > 0 {
@@ -227,10 +227,10 @@ func NewShellSend() CoreTool {
 			payload = append(payload, "\x1b[201~"...)
 		}
 		if len(payload) == 0 {
-			return Errorf("没有可发送的输入(text/submit/keys/hex/paste 至少给一个)"), nil
+			return Errorf("no input to send (provide at least one of text/submit/keys/hex/paste)"), nil
 		}
 		if _, err := s.ptmx.Write(payload); err != nil {
-			return Errorf("写入失败: " + err.Error()), nil
+			return Errorf("failed to write: " + err.Error()), nil
 		}
 		wait := a.Wait == nil || *a.Wait
 		if !wait {
@@ -276,7 +276,7 @@ func NewShellRead() CoreTool {
 		_ = json.Unmarshal(in, &a)
 		s, ok := m.session(a.SessionID)
 		if !ok {
-			return Errorf("会话不存在: " + a.SessionID), nil
+			return Errorf("session does not exist: " + a.SessionID), nil
 		}
 		if a.View == "screen" {
 			grid, rows, cols, cx, cy := s.screen()
@@ -320,7 +320,7 @@ func NewShellClose() CoreTool {
 		_ = json.Unmarshal(in, &a)
 		s, ok := m.session(a.SessionID)
 		if !ok {
-			return Errorf("会话不存在: " + a.SessionID), nil
+			return Errorf("session does not exist: " + a.SessionID), nil
 		}
 		ec := s.exit()
 		s.kill()

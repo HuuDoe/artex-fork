@@ -194,23 +194,23 @@ var builtinAgents = []builtinAgent{
 		// Now 是全局 runtime 变量(见 server.globalPromptVars),不再在各 agent 目录里
 		// 重复定义,否则 withGlobalVars 追加时会与全局项撞名。
 	}, false, nil},
-	{"planner", "规划", "planner", "读取态势、判定目标，只在确有未覆盖的新方向时补充探索意图（每任务一个规划循环）。", []promptVar{
-		{"Goal", "任务总目标", "拿下 example.com 的管理员权限", "exploration"},
-		{"AssetSummary", "资产计数/类型分布摘要(可选)", "domain:3 ip:5 site:2", "distilled"},
+	{"planner", "Planner", "planner", "Reads situation, evaluates goals, and adds exploration intents only when there are uncovered new directions (one planner loop per task).", []promptVar{
+		{"Goal", "Total Task Goal", "Take down administrator privileges of example.com", "exploration"},
+		{"AssetSummary", "Asset count/type distribution summary (optional)", "domain:3 ip:5 site:2", "distilled"},
 	}, false, nil},
-	{"mainagent", "主", "main", "人机接口：观察进展，把人的意图落成 hint 或高优先级意图。", []promptVar{
-		{"Goal", "当前任务目标", "拿下 example.com 的管理员权限", "exploration"},
-		{"AssetSummary", "开局态势摘要(可选)", "domain:3 ip:5", "distilled"},
-		{"FindingsSummary", "已确认漏洞摘要(可选)", "high:1 medium:2", "distilled"},
+	{"mainagent", "Main", "main", "Human-machine interface: observes progress, turns human intent into hints or high-priority intents.", []promptVar{
+		{"Goal", "Current Task Goal", "Take down administrator privileges of example.com", "exploration"},
+		{"AssetSummary", "Opening situation summary (optional)", "domain:3 ip:5", "distilled"},
+		{"FindingsSummary", "Confirmed findings summary (optional)", "high:1 medium:2", "distilled"},
 	}, false, nil},
-	{"worker", "执行", "worker", "领取一条意图执行，把发现的事实/漏洞写回知识图谱后停止。", []promptVar{
-		{"ProxyAddr", "记录代理地址(驱动 if 双文案)", "127.0.0.1:8080", "runtime"},
-		{"WorkerName", "worker 自我标识(可选)", "worker-1", "runtime"},
+	{"worker", "Worker", "worker", "Claims an intent to execute, writes discovered facts/vulnerabilities back to knowledge graph and stops.", []promptVar{
+		{"ProxyAddr", "Recording proxy address (driver if dual copy)", "127.0.0.1:8080", "runtime"},
+		{"WorkerName", "Worker self-identifier (optional)", "worker-1", "runtime"},
 	}, false, nil},
-	// Auto:内置「平台操作」agent。不参与渗透编排循环,经对话页驱动,用工具操作平台。
-	{"auto", "Auto", "assistant", "平台操作助手：用工具管理任务(建/看/暂停/给提示)与资产，并可创建/修改 skill、自定义工具、MCP。", nil, false, nil},
-	// 渗透测试:内置「独立渗透」agent。经对话页驱动,一人从侦察到收尾走完整条渗透链,自己规划自己执行自己验证。默认开启交互式 shell。
-	{"pentest", "渗透测试", "assistant", "独立渗透 agent：一人从侦察→找攻击面→深入利用→验证→收尾走完整条链，自己规划、自己执行、自己对抗式验证。", nil, true, intp(0)},
+	// Auto: built-in platform operations agent. Driven by chat page, uses tools to manage platform.
+	{"auto", "Auto", "assistant", "Platform operations assistant: uses tools to manage tasks (create/view/pause/hint) and assets, and can create/modify skills, custom tools, and MCP.", nil, false, nil},
+	// Pentest: built-in independent penetration test agent. Driven by chat page. Default interactive shell enabled.
+	{"pentest", "Penetration Testing", "assistant", "Standalone pentest agent: guides the entire chain from reconnaissance -> attack surface -> exploitation -> verification -> wrapup, planning, executing, and adversarially verifying on its own.", nil, true, intp(0)},
 }
 
 // seedBuiltins inserts the fixed built-in agents and their variable catalog (idempotent).

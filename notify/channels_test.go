@@ -88,8 +88,8 @@ func TestDingTalkFallsBackToMarkdownForBatch(t *testing.T) {
 			t.Fatalf("汇总消息应发 markdown，得到 %v", body["msgtype"])
 		}
 		md, _ := body["markdown"].(map[string]any)
-		if !strings.Contains(md["text"].(string), "近 30 分钟") {
-			t.Errorf("汇总正文缺少时间窗: %v", md["text"])
+		if !strings.Contains(md["text"].(string), "30 minutes") {
+			t.Errorf("summary missing window: %v", md["text"])
 		}
 	})
 	if _, err := (dingTalkChannel{}).Send(context.Background(), map[string]any{"webhook": srv.URL}, batchMsg(3)); err != nil {
@@ -251,12 +251,12 @@ func TestWebhookDefaultTemplateProducesValidJSON(t *testing.T) {
 	// 这条是默认模板存在的意义：标题里带引号与换行时，任何朴素的
 	// `"title": "{{.Title}}"` 写法都会产出非法 JSON。{{json .}} 才不会。
 	srv := capturePost(t, `{"ok":true}`, func(t *testing.T, body map[string]any, _ *http.Request) {
-		if body["title"] != `[🟠 高危] 登录处 "SQL注入" 风险` {
-			t.Errorf("标题未正确还原: %v", body["title"])
+		if body["title"] != `[🟠 High] 登录处 "SQL注入" 风险` {
+			t.Errorf("title not restored properly: %v", body["title"])
 		}
 		items, _ := body["items"].([]any)
 		if len(items) != 1 {
-			t.Fatalf("items 数量应为 1，得到 %d", len(items))
+			t.Fatalf("items count should be 1, got %d", len(items))
 		}
 		it, _ := items[0].(map[string]any)
 		if it["summary"] != "参数 id\n未过滤 导致注入" {
@@ -408,14 +408,14 @@ func TestChannelValidateReportsMissingFields(t *testing.T) {
 		cfg    map[string]any
 		substr string
 	}{
-		{KindDingTalk, map[string]any{}, "Webhook"},
-		{KindFeishu, map[string]any{}, "Webhook"},
-		{KindWeCom, map[string]any{}, "Webhook"},
+		{KindDingTalk, map[string]any{}, "webhook"},
+		{KindFeishu, map[string]any{}, "webhook"},
+		{KindWeCom, map[string]any{}, "webhook"},
 		{KindTelegram, map[string]any{}, "Bot Token"},
 		{KindTelegram, map[string]any{"bot_token": "t"}, "Chat ID"},
 		{KindEmail, map[string]any{}, "SMTP"},
-		{KindEmail, map[string]any{"host": "h"}, "端口"},
-		{KindEmail, map[string]any{"host": "h", "port": 587, "from": "f"}, "收件人"},
+		{KindEmail, map[string]any{"host": "h"}, "port"},
+		{KindEmail, map[string]any{"host": "h", "port": 587, "from": "f"}, "recipient"},
 	}
 	for _, tc := range cases {
 		ch, ok := Get(tc.kind)
@@ -427,7 +427,7 @@ func TestChannelValidateReportsMissingFields(t *testing.T) {
 			t.Errorf("%s 配置 %v 应校验失败", tc.kind, tc.cfg)
 			continue
 		}
-		if !strings.Contains(err.Error(), tc.substr) {
+		if !strings.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.substr)) {
 			t.Errorf("%s 的错误信息应提到 %q，得到 %q", tc.kind, tc.substr, err.Error())
 		}
 	}

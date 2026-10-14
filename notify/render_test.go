@@ -102,31 +102,30 @@ func TestTruncateHTMLNeverCutsTagInHalf(t *testing.T) {
 
 func TestAssetLineOmitsExcess(t *testing.T) {
 	if got := assetLine(nil, 3); got != "" {
-		t.Fatalf("无资产应返回空串，得到 %q", got)
+		t.Fatalf("no assets should return empty, got %q", got)
 	}
-	if got := assetLine([]string{"a", "b"}, 3); got != "a、b" {
-		t.Fatalf("未超限应全列，得到 %q", got)
+	if got := assetLine([]string{"a", "b"}, 3); got != "a, b" {
+		t.Fatalf("under limit should list all, got %q", got)
 	}
-	// 超出上限时必须标注总数，否则读者不知道还有多少资产没列出来。
 	got := assetLine([]string{"a", "b", "c", "d", "e"}, 2)
-	if !strings.Contains(got, "等 5 个") {
-		t.Fatalf("应标注总数 5，得到 %q", got)
+	if !strings.Contains(got, "5 total") {
+		t.Fatalf("should note total 5, got %q", got)
 	}
 }
 
 func TestSeverityAndStatusLabels(t *testing.T) {
 	if AtLeast("", "low") {
-		t.Fatal("空级别序数为 0，应被任何门槛挡住")
+		t.Fatal("empty rank is 0, should be blocked by any threshold")
 	}
 	if !AtLeast("critical", "") {
-		t.Fatal("空门槛应放行")
+		t.Fatal("empty threshold should pass")
 	}
-	if got := StatusLabel("fixed"); got != "已修复" {
-		t.Fatalf("未知状态映射，得到 %q", got)
+	if got := StatusLabel("fixed"); got != "Fixed" {
+		t.Fatalf("unknown status mapping, got %q", got)
 	}
-	// 未知状态原样回显，不臆造标签。
+	// Unknown status echoes as-is.
 	if got := StatusLabel("weird_status"); got != "weird_status" {
-		t.Fatalf("未知状态应原样回显，得到 %q", got)
+		t.Fatalf("unknown status should echo as-is, got %q", got)
 	}
 }
 

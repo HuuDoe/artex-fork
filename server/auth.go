@@ -29,18 +29,16 @@ const (
 	maxPasswordBytes = 72
 )
 
-// errDataSourceUnavailable 是密码相关读操作失败时统一的回复。这些 handler 绝不能
-// 把"读不到"当成"没有设置"：authInit 曾因此在数据库报错时放行，让未认证请求覆盖
-// 掉已有的管理员密码。
-const errDataSourceUnavailable = "数据源暂时不可用，请稍后重试"
+// errDataSourceUnavailable is the unified response when password-related reads fail.
+const errDataSourceUnavailable = "Database is temporarily unavailable; please try again later"
 
-// validatePassword 返回空串表示通过，否则返回可直接展示给用户的中文原因。
+// validatePassword returns an empty string on success, or an English error message.
 func validatePassword(pw string) string {
 	if utf8.RuneCountInString(pw) < minPasswordRunes {
-		return fmt.Sprintf("密码长度至少 %d 位", minPasswordRunes)
+		return fmt.Sprintf("Password must be at least %d characters", minPasswordRunes)
 	}
 	if len(pw) > maxPasswordBytes {
-		return fmt.Sprintf("密码长度不能超过 %d 字节", maxPasswordBytes)
+		return fmt.Sprintf("Password cannot exceed %d bytes", maxPasswordBytes)
 	}
 	return ""
 }
@@ -60,7 +58,7 @@ func loadOrCreateJWTKey(keyDir, dataDir string) ([]byte, error) {
 			if data, rerr := os.ReadFile(legacy); rerr == nil {
 				if werr := os.WriteFile(path, data, 0o600); werr == nil {
 					_ = os.Remove(legacy)
-					log.Printf("[auth] JWT key 已从 %s 迁移到 %s（移出可浏览工作区）", legacy, path)
+					log.Printf("[auth] JWT key migrated from %s to %s (moved outside browsable workspace)", legacy, path)
 				}
 			}
 		}
@@ -79,7 +77,7 @@ func loadOrCreateJWTKey(keyDir, dataDir string) ([]byte, error) {
 	if err := os.WriteFile(path, buf, 0600); err != nil {
 		return nil, fmt.Errorf("write jwt key: %w", err)
 	}
-	log.Printf("[auth] 新 JWT key 已写入 %s", path)
+	log.Printf("[auth] new JWT key written to %s", path)
 	return buf, nil
 }
 
@@ -126,11 +124,11 @@ func (s *Server) requireAuth(h http.Handler) http.Handler {
 		}
 		tok := extractToken(r)
 		if tok == "" {
-			localizedErr(w, r, 401, "未授权")
+			localizedErr(w, r, 401, "Unauthorized")
 			return
 		}
 		if !verifyJWT(tok, s.jwtKey) {
-			localizedErr(w, r, 401, "token 无效或已过期")
+			localizedErr(w, r, 401, "Invalid or expired token")
 			return
 		}
 		h.ServeHTTP(w, r)
@@ -166,14 +164,14 @@ func (s *Server) authInit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if existing != "" {
-		localizedErr(w, r, 403, "密码已设置")
+		localizedErr(w, r, 403, "Password already set")
 		return
 	}
 	var req struct {
 		Password string `json:"password"`
 	}
 	if err := decode(r, &req); err != nil || req.Password == "" {
-		localizedErr(w, r, 400, "密码不能为空")
+		localizedErr(w, r, 400, "Password cannot be empty")
 		return
 	}
 	if msg := validatePassword(req.Password); msg != "" {
@@ -182,7 +180,7 @@ func (s *Server) authInit(w http.ResponseWriter, r *http.Request) {
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		localizedErr(w, r, 500, "密码加密失败")
+		localizedErr(w, r, 500, "Failed to encrypt password")
 		return
 	}
 	// 用 INSERT ... ON CONFLICT DO NOTHING 而不是 upsert：上面那次 GetSetting 只是
@@ -190,16 +188,16 @@ func (s *Server) authInit(w http.ResponseWriter, r *http.Request) {
 	// 这期间别的请求完全可能先把密码设好，而读检查本身也可能因故障而失效。
 	inserted, err := pg.InsertSettingIfAbsent(authPassKey, string(hash))
 	if err != nil {
-		localizedErr(w, r, 500, "保存失败: "+err.Error())
+		localizedErr(w, r, 500, "Failed to save: "+err.Error())
 		return
 	}
 	if !inserted {
-		localizedErr(w, r, 403, "密码已设置")
+		localizedErr(w, r, 403, "Password already set")
 		return
 	}
 	tok, err := signJWT(s.jwtKey)
 	if err != nil {
-		localizedErr(w, r, 500, "token 生成失败")
+		localizedErr(w, r, 500, "Failed to generate token")
 		return
 	}
 	writeJSON(w, 200, map[string]any{"token": tok})
@@ -214,7 +212,7 @@ func (s *Server) authChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !verifyJWT(extractToken(r), s.jwtKey) {
-		localizedErr(w, r, 401, "未授权")
+		localizedErr(w, r, 401, "Unauthorized")
 		return
 	}
 	var req struct {
@@ -222,11 +220,11 @@ func (s *Server) authChangePassword(w http.ResponseWriter, r *http.Request) {
 		NewPassword string `json:"new_password"`
 	}
 	if err := decode(r, &req); err != nil {
-		localizedErr(w, r, 400, "请求格式错误")
+		localizedErr(w, r, 400, "Malformed request")
 		return
 	}
 	if req.NewPassword == "" {
-		localizedErr(w, r, 400, "新密码不能为空")
+		localizedErr(w, r, 400, "New password cannot be empty")
 		return
 	}
 	if msg := validatePassword(req.NewPassword); msg != "" {
@@ -239,20 +237,20 @@ func (s *Server) authChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !ok || hash == "" {
-		localizedErr(w, r, 403, "密码未初始化，请先设置密码")
+		localizedErr(w, r, 403, "Password not initialized; please set a password first")
 		return
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.OldPassword)); err != nil {
-		localizedErr(w, r, 401, "当前密码错误")
+		localizedErr(w, r, 401, "Incorrect current password")
 		return
 	}
 	newHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
-		localizedErr(w, r, 500, "密码加密失败")
+		localizedErr(w, r, 500, "Failed to encrypt password")
 		return
 	}
 	if err := pg.SetSetting(authPassKey, string(newHash)); err != nil {
-		localizedErr(w, r, 500, "保存失败: "+err.Error())
+		localizedErr(w, r, 500, "Failed to save: "+err.Error())
 		return
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
@@ -269,11 +267,11 @@ func (s *Server) authLogin(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := decode(r, &req); err != nil {
-		localizedErr(w, r, 400, "请求格式错误")
+		localizedErr(w, r, 400, "Malformed request")
 		return
 	}
 	if req.Username != "ARTEX" {
-		localizedErr(w, r, 401, "用户名或密码错误")
+		localizedErr(w, r, 401, "Invalid username or password")
 		return
 	}
 	hash, ok, err := pg.GetSetting(authPassKey)
@@ -282,16 +280,16 @@ func (s *Server) authLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !ok || hash == "" {
-		localizedErr(w, r, 403, "密码未初始化，请先设置密码")
+		localizedErr(w, r, 403, "Password not initialized; please set a password first")
 		return
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.Password)); err != nil {
-		localizedErr(w, r, 401, "用户名或密码错误")
+		localizedErr(w, r, 401, "Invalid username or password")
 		return
 	}
 	tok, err := signJWT(s.jwtKey)
 	if err != nil {
-		localizedErr(w, r, 500, "token 生成失败")
+		localizedErr(w, r, 500, "Failed to generate token")
 		return
 	}
 	writeJSON(w, 200, map[string]any{"token": tok})

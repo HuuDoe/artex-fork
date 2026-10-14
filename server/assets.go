@@ -23,7 +23,7 @@ func decodeCompanyMutationRequest(w http.ResponseWriter, r *http.Request, value 
 	if err := json.NewDecoder(r.Body).Decode(value); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			localizedErr(w, r, http.StatusRequestEntityTooLarge, "请求正文过大")
+			localizedErr(w, r, http.StatusRequestEntityTooLarge, "Request entity too large")
 		} else {
 			localizedErr(w, r, http.StatusBadRequest, "invalid JSON: "+err.Error())
 		}
@@ -118,7 +118,7 @@ func (s *Server) createCompany(w http.ResponseWriter, r *http.Request) {
 	id, added, skipped, invalid, scopeErrs, err := cs.CreateCompanyWithScope(req.Name, req.Logo, req.Scope, "api")
 	if err != nil {
 		if errors.Is(err, db.ErrCompanyNameConflict) {
-			localizedErr(w, r, http.StatusConflict, "企业名称已存在")
+			localizedErr(w, r, http.StatusConflict, "Company name already exists")
 			return
 		}
 		var validationErr *db.CompanyScopeValidationError
@@ -542,7 +542,7 @@ func (s *Server) insertAssets(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if req.TaskID > 0 {
-			_ = as.SetTaskAssetSource(req.TaskID, id, "api", "通过资产 API 登记", nil)
+			_ = as.SetTaskAssetSource(req.TaskID, id, "api", "Registered via Asset API", nil)
 		}
 		results = append(results, result{Index: i, ID: id, Type: a.Type})
 	}
