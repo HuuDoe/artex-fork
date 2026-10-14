@@ -59,6 +59,12 @@ export function getLocale(): Locale {
   return activeLocale;
 }
 
+const DOCUMENT_TITLES: Record<Locale, string> = {
+  "en-US": "ARTEX — Autonomous Penetration Testing Console",
+  "vi-VN": "ARTEX — Bảng điều khiển kiểm thử thâm nhập tự động",
+  "zh-CN": "ARTEX — 自主渗透测试控制台",
+};
+
 /**
  * Apply a locale to the document. Called on boot (from the preferences store
  * hydration) and whenever the user picks a different language.
@@ -68,6 +74,9 @@ export function applyLocale(locale: Locale) {
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("lang", toBcp47(locale));
     document.documentElement.setAttribute("data-locale", locale);
+    if (DOCUMENT_TITLES[locale]) {
+      document.title = DOCUMENT_TITLES[locale];
+    }
   }
   emit();
 }
