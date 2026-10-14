@@ -13,6 +13,15 @@ export const KIND_LABEL: Record<string, string> = {
   email: "邮件",
 };
 
+export function getKindLabel(kind: string, t?: (k: string) => string): string {
+  if (t) {
+    const k = `notify.kind.${kind}`;
+    const val = t(k);
+    if (val && val !== k) return val;
+  }
+  return KIND_LABEL[kind] ?? kind;
+}
+
 // 各渠道的配置字段定义。
 //
 // 这里刻意保留一份前端字段表，而不是让后端下发 schema：后端只负责
@@ -121,6 +130,17 @@ export const SEVERITY_OPTIONS = [
   { value: "high", label: "高危及以上" },
   { value: "critical", label: "仅严重" },
 ];
+
+export function getSeverityOptions(t?: (k: string) => string) {
+  if (!t) return SEVERITY_OPTIONS;
+  return [
+    { value: "", label: t("notify.severity.all") },
+    { value: "low", label: t("notify.severity.low") },
+    { value: "medium", label: t("notify.severity.medium") },
+    { value: "high", label: t("notify.severity.high") },
+    { value: "critical", label: t("notify.severity.critical") },
+  ];
+}
 
 export type ChannelForm = {
   name: string;

@@ -48,6 +48,17 @@ export function UpdateCard() {
   const [restarting, setRestarting] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
+  const formatUpdateError = React.useCallback(
+    (err: string) => {
+      const match = err.match(/仓库\s+(\S+)\s+尚未发布任何正式版本/);
+      if (match) {
+        return t("settings.update.noReleaseFound", { repo: match[1] });
+      }
+      return err;
+    },
+    [t]
+  );
+
   // quiet 同时决定要不要绕过后端缓存：进页面时的自动检查用缓存（顶栏刚查过），
   // 用户手动点「检查更新」则强制回源，否则刚发布的版本要等缓存过期才看得到。
   const check = React.useCallback((quiet = false) => {
@@ -57,16 +68,17 @@ export function UpdateCard() {
       .then((r) => {
         setInfo(r);
         if (!quiet) {
-          if (r.error) toast.error(t("settings.update.checkFailed", { message: r.error }));
+          if (r.error) toast.error(t("settings.update.checkFailed", { message: formatUpdateError(r.error) }));
           else if (r.has_update) toast.success(t("settings.update.found", { version: r.latest ?? "" }));
           else if (r.comparable) toast.success(t("settings.update.latest"));
         }
       })
       .catch((e) => {
-        if (!quiet) toast.error(t("settings.update.checkFailed", { message: (e as Error).message }));
+        if (!quiet) toast.error(t("settings.update.checkFailed", { message: formatUpdateError((e as Error).message) }));
       })
       .finally(() => setChecking(false));
-  }, [t]);
+  }, [t, formatUpdateError]);
+
 
   React.useEffect(() => {
     check(true);
@@ -236,7 +248,7 @@ export function UpdateCard() {
         {info?.error && (
           <p className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
             <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" />
-            {t("settings.update.unableConnect", { message: info.error })}
+            {t("settings.update.unableConnect", { message: formatUpdateError(info.error) })}
           </p>
         )}
 

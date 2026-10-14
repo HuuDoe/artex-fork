@@ -13,9 +13,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { api } from "@/lib/api";
 import { statusMeta, toneClasses } from "@/lib/status";
 import type { NotificationChannel, NotificationDelivery } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 
 // DeliveryList 是投递记录表：可按渠道与状态筛选，失败项可手动重发。
 export function DeliveryList({ channels }: { channels: NotificationChannel[] }) {
+  const { t, locale } = useI18n();
   const [rows, setRows] = React.useState<NotificationDelivery[]>([]);
   const [total, setTotal] = React.useState(0);
   const [page, setPage] = React.useState(1);
@@ -32,9 +34,9 @@ export function DeliveryList({ channels }: { channels: NotificationChannel[] }) 
         setRows(r.deliveries);
         setTotal(r.total);
       })
-      .catch((e) => toast.error("读取投递记录失败：" + (e as Error).message))
+      .catch((e) => toast.error(t("notify.deliveries.loadFailed", { message: (e as Error).message })))
       .finally(() => setLoading(false));
-  }, [channelID, state, page]);
+  }, [channelID, state, page, t]);
   React.useEffect(() => {
     load();
   }, [load]);
@@ -42,10 +44,10 @@ export function DeliveryList({ channels }: { channels: NotificationChannel[] }) 
   async function retry(id: number) {
     try {
       await api.notifyRetryDelivery(id);
-      toast.success("已重新入队");
+      toast.success(t("notify.deliveries.requeued"));
       load();
     } catch (e) {
-      toast.error("重发失败：" + (e as Error).message);
+      toast.error(t("notify.deliveries.retryFailed", { message: (e as Error).message }));
     }
   }
 
@@ -62,10 +64,10 @@ export function DeliveryList({ channels }: { channels: NotificationChannel[] }) 
           }}
         >
           <SelectTrigger size="sm" className="w-44">
-            <SelectValue placeholder="全部渠道" />
+            <SelectValue placeholder={t("notify.deliveries.allChannels")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部渠道</SelectItem>
+            <SelectItem value="all">{t("notify.deliveries.allChannels")}</SelectItem>
             {channels.map((c) => (
               <SelectItem key={c.id} value={String(c.id)}>
                 {c.name}
@@ -81,10 +83,10 @@ export function DeliveryList({ channels }: { channels: NotificationChannel[] }) 
           }}
         >
           <SelectTrigger size="sm" className="w-32">
-            <SelectValue placeholder="全部状态" />
+            <SelectValue placeholder={t("notify.deliveries.allStates")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部状态</SelectItem>
+            <SelectItem value="all">{t("notify.deliveries.allStates")}</SelectItem>
             {["pending", "sending", "sent", "failed", "skipped"].map((s) => (
               <SelectItem key={s} value={s}>
                 {statusMeta("delivery", s).label}
@@ -93,21 +95,21 @@ export function DeliveryList({ channels }: { channels: NotificationChannel[] }) 
           </SelectContent>
         </Select>
         <Button size="sm" variant="outline" onClick={load} disabled={loading}>
-          <RefreshCwIcon className={loading ? "animate-spin" : ""} /> 刷新
+          <RefreshCwIcon className={loading ? "animate-spin" : ""} /> {t("common.refresh")}
         </Button>
-        <span className="text-muted-foreground ml-auto text-xs">共 {total} 条</span>
+        <span className="text-muted-foreground ml-auto text-xs">{t("common.total", { total })}</span>
       </div>
 
       <Card className="py-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-40">时间</TableHead>
-              <TableHead>漏洞</TableHead>
-              <TableHead className="w-40">渠道</TableHead>
-              <TableHead className="w-24">状态</TableHead>
-              <TableHead className="w-16">尝试</TableHead>
-              <TableHead>错误</TableHead>
+              <TableHead className="w-40">{t("notify.deliveries.colTime")}</TableHead>
+              <TableHead>{t("notify.deliveries.colFinding")}</TableHead>
+              <TableHead className="w-40">{t("notify.deliveries.colChannel")}</TableHead>
+              <TableHead className="w-24">{t("notify.deliveries.colStatus")}</TableHead>
+              <TableHead className="w-16">{t("notify.deliveries.colAttempts")}</TableHead>
+              <TableHead>{t("notify.deliveries.colError")}</TableHead>
               <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
@@ -115,24 +117,24 @@ export function DeliveryList({ channels }: { channels: NotificationChannel[] }) 
             {rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-muted-foreground py-8 text-center">
-                  {loading ? "加载中…" : "暂无投递记录"}
+                  {loading ? t("notify.deliveries.loading") : t("notify.deliveries.empty")}
                 </TableCell>
               </TableRow>
             ) : (
               rows.map((d) => (
                 <TableRow key={d.id}>
                   <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {formatTime(d.created_at)}
+                    {formatTime(d.created_at, locale)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className={toneClasses[statusMeta("severity", d.severity).tone]}>
                         {statusMeta("severity", d.severity).label}
                       </Badge>
-                      <span className="truncate text-sm">{d.title || "（无标题）"}</span>
+                      <span className="truncate text-sm">{d.title || t("notify.deliveries.noTitle")}</span>
                       {d.event_kind === "finding_status_changed" && (
                         <Badge variant="outline" className="shrink-0">
-                          状态变更
+                          {t("notify.deliveries.statusChanged")}
                         </Badge>
                       )}
                     </div>
@@ -149,7 +151,7 @@ export function DeliveryList({ channels }: { channels: NotificationChannel[] }) 
                     {/* 只有失败/跳过的才给重发入口：已送达的重发会造成重复推送。 */}
                     {(d.state === "failed" || d.state === "skipped") && (
                       <Button size="sm" variant="outline" onClick={() => retry(d.id)}>
-                        <RotateCcwIcon /> 重发
+                        <RotateCcwIcon /> {t("notify.deliveries.retry")}
                       </Button>
                     )}
                   </TableCell>
@@ -163,13 +165,13 @@ export function DeliveryList({ channels }: { channels: NotificationChannel[] }) 
       {maxPage > 1 && (
         <div className="flex items-center justify-end gap-2">
           <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-            上一页
+            {t("common.prev")}
           </Button>
           <span className="text-muted-foreground text-sm">
             {page} / {maxPage}
           </span>
           <Button size="sm" variant="outline" disabled={page >= maxPage} onClick={() => setPage((p) => p + 1)}>
-            下一页
+            {t("common.next")}
           </Button>
         </div>
       )}
@@ -177,8 +179,8 @@ export function DeliveryList({ channels }: { channels: NotificationChannel[] }) 
   );
 }
 
-function formatTime(iso: string): string {
+function formatTime(iso: string, locale?: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("zh-CN", { hour12: false });
+  return d.toLocaleString(locale || "zh-CN", { hour12: false });
 }

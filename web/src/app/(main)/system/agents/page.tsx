@@ -40,6 +40,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { AgentEditor } from "@/components/agent-editor";
 import { api } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { getAgentDisplayName, getAgentDisplayDesc } from "@/lib/i18n/builtin-labels";
 import type { Agent } from "@/lib/types";
 
 // AgentGridCard is one clickable tile opening the agent's editor drawer. Custom
@@ -58,7 +59,7 @@ function AgentGridCard({
   async function del() {
     try {
       await api.deleteAgent(agent.key);
-      toast.success(t("agents.toast.deleted", { name: agent.name }));
+      toast.success(t("agents.toast.deleted", { name: getAgentDisplayName(agent.key, agent.name, t) }));
       onDeleted();
     } catch (e) {
       toast.error(t("agents.toast.deleteFailed", { message: (e as Error).message }));
@@ -69,7 +70,7 @@ function AgentGridCard({
       <button type="button" onClick={onOpen} className="flex flex-col gap-2 text-left">
         <div className="flex flex-wrap items-center gap-2">
           <Bot className="text-muted-foreground size-4" />
-          <span className="text-sm font-medium">{agent.name}</span>
+          <span className="text-sm font-medium">{getAgentDisplayName(agent.key, agent.name, t)}</span>
           <span className="text-muted-foreground font-mono text-xs">{agent.key}</span>
           {agent.builtin ? (
             <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
@@ -87,7 +88,7 @@ function AgentGridCard({
           )}
         </div>
         <p className="text-muted-foreground line-clamp-2 min-h-8 text-xs">
-          {agent.description || t("agents.card.noDescription")}
+          {getAgentDisplayDesc(agent.key, agent.description, t) || t("agents.card.noDescription")}
         </p>
         <div className="text-muted-foreground flex flex-wrap gap-1.5 text-[10px]">
           <span className="rounded border px-1.5 py-0.5">MCP {agent.mcp_count ?? 0}</span>
@@ -268,7 +269,7 @@ export default function AgentsPage() {
             <>
               <SheetHeader className="px-4">
                 <SheetTitle className="flex items-center gap-2">
-                  {editing.name}
+                  {getAgentDisplayName(editing.key, editing.name, t)}
                   <span className="text-muted-foreground font-mono text-xs">{editing.key}</span>
                   {!editing.builtin && (
                     <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
@@ -276,7 +277,9 @@ export default function AgentsPage() {
                     </Badge>
                   )}
                 </SheetTitle>
-                <SheetDescription>{editing.description || t("agents.editor.fallbackDescription")}</SheetDescription>
+                <SheetDescription>
+                  {getAgentDisplayDesc(editing.key, editing.description, t) || t("agents.editor.fallbackDescription")}
+                </SheetDescription>
               </SheetHeader>
               <AgentEditor agentKey={editing.key} onSaved={reload} />
             </>

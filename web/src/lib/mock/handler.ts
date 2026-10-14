@@ -2427,8 +2427,10 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (seg[0] === "intercept" && seg[1] === "pending" && seg.length === 3 && m === "GET")
     return mockInterceptPending.find((p) => p.id === Number(seg[2])) ?? null;
   if (path === "/intercept/history" || (seg[0] === "intercept" && seg[1] === "task")) {
-    const status = q.get("status") || "";
-    const decisionSource = q.get("decision_source") || "";
+    let status = q.get("status") || "";
+    let decisionSource = q.get("decision_source") || "";
+    if (status === "all") status = "";
+    if (decisionSource === "all") decisionSource = "";
     if (status && !["pending", "allowed", "denied", "timeout"].includes(status)) throw new Error("无效审批状态");
     if (decisionSource && !["model", "rule", "unknown"].includes(decisionSource)) throw new Error("无效判定来源");
     const filtered = mockInterceptHistory.filter((row) => {

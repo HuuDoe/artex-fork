@@ -4,20 +4,21 @@ import { useEffect, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { AlertTriangle, ShieldCheck } from "lucide-react";
+import { AlertTriangle, GlobeIcon, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { auth } from "@/lib/auth";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Locale } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, locale, setLocale } = useI18n();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -89,7 +90,28 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex h-dvh">
+    <div className="flex h-dvh relative">
+      <div className="absolute top-4 right-4 z-50">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" className="size-9 rounded-full shadow-sm">
+              <GlobeIcon className="size-4" />
+              <span className="sr-only">Toggle language</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setLocale("en-US")} className={locale === "en-US" ? "font-bold" : ""}>
+              English (US)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocale("zh-CN")} className={locale === "zh-CN" ? "font-bold" : ""}>
+              简体中文
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocale("vi-VN")} className={locale === "vi-VN" ? "font-bold" : ""}>
+              Tiếng Việt
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       {/* Left panel */}
       <div className="hidden flex-col items-center justify-center bg-primary p-12 text-center lg:flex lg:w-1/3">
         <div className="relative flex items-center justify-center">
