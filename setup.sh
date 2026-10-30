@@ -35,8 +35,8 @@ DEVIN_CREDS="$DEVIN_DATA/credentials.toml"
 
 if ! command -v devin &>/dev/null; then
   info "Installing Devin CLI..."
-  curl -fsSL https://raw.githubusercontent.com/devin-ai-integration/devin-cli/main/install.sh | bash \
-    || info "Auto-install failed. Install manually: https://docs.devin.ai/cli/install"
+  curl -fsSL https://cli.devin.ai/install.sh | bash \
+    || info "Auto-install failed. Visit https://devin.ai to install manually."
 fi
 
 if [ ! -f "$DEVIN_CREDS" ]; then
