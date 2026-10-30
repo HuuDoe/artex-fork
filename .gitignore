@@ -24,8 +24,9 @@ web/next-env.d.ts
 *.swp
 *.swo
 
-# docs
-/docs/
+# docs (upstream ignored /docs/; we track docs/windsurf-integration.md)
+/docs/*
+!/docs/windsurf-integration.md
 
 # agent-local instructions/state (managed outside version control)
 /AGENTS.md

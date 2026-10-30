@@ -1,12 +1,98 @@
 <div align="center">
 
+# ARTEX Fork — Windsurf/Devin SWE-2 Integration
+
+Fork of [ARTEX](https://github.com/konanguyen/ARTEX) with native **Devin SWE-2 model support** via reverse-engineered Codeium Connect protocol.
+
+</div>
+
+## What This Fork Adds
+
+- **Windsurf LLM provider** (`norma/llm/windsurf/windsurf.go`) — direct protobuf-over-HTTP to `server.codeium.com`, bypassing the Devin agent harness. ARTEX's agent loop keeps full control over tool calling, message history, and system prompts.
+- **SWE-2 models** — `swe-2-high`, `swe-2-medium`, `swe-2-max` as selectable LLM profiles.
+- **CloakBrowser** — stealth Chromium with 87 C++ patches for evading bot detection.
+- **Traffic capture fixes** — mitmproxy-based evidence collection for vulnerability findings.
+- **Protocol docs** — full reverse-engineering writeup at [`docs/windsurf-integration.md`](docs/windsurf-integration.md), reusable for connecting SWE-2 to any tool.
+
+## Fork Quick Start
+
+### Prerequisites
+
+- Docker and Docker Compose v2
+- [Devin Pro](https://devin.ai) subscription (for SWE-2 — optional if using OpenAI/Anthropic)
+
+### Setup
+
+```bash
+git clone https://github.com/HuuDoe/artex-fork.git
+cd artex-fork
+
+# Create .env (only POSTGRES_PASSWORD is required)
+cat > .env <<'EOF'
+POSTGRES_PASSWORD=artex-local-2026
+EOF
+
+# (Optional) Install Devin CLI and authenticate for SWE-2 support
+curl -fsSL https://cli.devin.ai/install.sh | bash
+devin auth login    # opens browser for Devin Pro auth
+
+# Build and start
+docker compose build    # ~6 min first time
+docker compose up -d
+```
+
+Or use the automated script: `./setup.sh` (handles all of the above interactively).
+
+**Web UI:** http://localhost:8787 — login with `ARTEX` / `ARTEX`
+
+### Adding SWE-2 as an LLM Profile
+
+1. Go to **System → LLM Profiles** → **Add Profile**
+2. Set **Provider** to `windsurf`
+3. Set **Model** to `swe-2-high` (or `swe-2-medium` / `swe-2-max`)
+4. Leave **API Key** empty — it reads from your Devin credentials automatically
+5. Click **Test**, then **Save**
+
+The Windsurf provider reads `windsurf_api_key` from `~/.local/share/devin/credentials.toml` on your host, which is mounted read-only into the container by `docker-compose.yml`.
+
+### Using Without SWE-2
+
+Skip the Devin CLI step. Configure OpenAI or Anthropic profiles instead:
+
+1. Add your API key to `.env` (`OPENAI_API_KEY=sk-...` or `ANTHROPIC_API_KEY=sk-...`)
+2. Or add profiles through the web UI under **System → LLM Profiles**
+
+### How the Windsurf Integration Works
+
+```
+ARTEX agent loop  →  Windsurf provider (Go)  →  server.codeium.com
+                     hand-rolled protobuf         GetChatMessage (streaming)
+                     windsurf-api-key header       returns deltas + tool calls
+```
+
+No `.proto` files — all protobuf encoding is hand-rolled (~70 lines). No Devin harness in the loop. Full protocol specification: [`docs/windsurf-integration.md`](docs/windsurf-integration.md).
+
+### Docker Compose Override (Optional)
+
+The base `docker-compose.yml` handles everything including Devin credential mounts. A `docker-compose.override.yml` is only needed if your Devin CLI is at a non-standard path or you need to run the `devin` binary inside the container:
+
+```bash
+cp docker-compose.override.yml.example docker-compose.override.yml
+# Edit DEVIN_CLI_BIN / DEVIN_DATA_DIR paths if needed
+```
+
+---
+
+<details>
+<summary><strong>Upstream ARTEX Documentation</strong></summary>
+
+<div align="center">
+
 # ARTEX
 
 Autonomous AI Penetration Testing System (Go backend + Next.js frontend)
 
 English | [简体中文](README_CN.md) | [Tiếng Việt](README_VI.md)
-
-🌐 **Online Demo (mock data)**: [https://artex-demo.mhtsec.com](https://artex-demo.mhtsec.com)
 
 📦 **This repository is the final pure-source backup of ARTEX. The original Docker image `autumn27/artex` is gone; images are now self-maintained by this repository as `mianhuatang11/artex` (Docker Hub). If the pull fails, run `docker compose build` to build locally from pure source — no external prebuilt dependencies.**
 
@@ -509,3 +595,5 @@ Users must themselves comply with all laws and regulations on cybersecurity, dat
 ### Disclaimer
 
 This project is provided "AS IS", without warranty of any kind, express or implied. The authors and contributors are not liable for any direct or indirect loss, data loss, system damage or legal dispute caused by the use of this tool (regardless of whether the use is proper). **Downloading, installing or using this project means you have read, understood and agreed to all of the above terms.**
+
+</details>
