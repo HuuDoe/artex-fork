@@ -459,6 +459,14 @@ ALTER TABLE llm_profiles ADD  CONSTRAINT llm_profiles_retry_check CHECK (
     retry_connect_attempts >= -1 AND retry_empty_attempts >= -1 AND retry_stream_attempts >= -1
     AND retry_connect_interval_ms >= 0 AND retry_empty_interval_ms >= 0 AND retry_stream_interval_ms >= 0);
 
+-- Seed Windsurf/SWE-2 profiles on first run (idempotent: skip if names exist).
+-- API key is empty — the Windsurf provider reads from credentials.toml at runtime.
+INSERT INTO llm_profiles (name, format, model, streaming, max_tokens, pool_exclude)
+VALUES ('Windsurf SWE-2 High',   'windsurf', 'swe-2-high',   true, 8192, false),
+       ('Windsurf SWE-2 Medium', 'windsurf', 'swe-2-medium', true, 8192, false),
+       ('Windsurf SWE-2 Max',    'windsurf', 'swe-2-max',    true, 8192, false)
+ON CONFLICT (name) DO NOTHING;
+
 -- 思考开关字段 thinking_type，从旧的单一 reasoning_effort 语义一次性拆分而来。
 -- schema.sql 每次启动都执行，故迁移必须只跑一次：仅当该列尚不存在时才回填，
 -- 否则每次启动都会把用户后来手动设的组合覆盖回去。旧 reasoning_effort 语义：
