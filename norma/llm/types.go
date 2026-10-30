@@ -25,6 +25,7 @@ const (
 	BlockThinking   BlockType = "thinking"
 	BlockToolUse    BlockType = "tool_use"
 	BlockToolResult BlockType = "tool_result"
+	BlockImage      BlockType = "image"
 )
 
 // ContentBlock is one piece of message content. Which fields are populated
@@ -41,6 +42,10 @@ type ContentBlock struct {
 	Thinking  string `json:"thinking,omitempty"`
 	Signature string `json:"signature,omitempty"`
 
+	// Image block: base64-encoded image data + MIME type.
+	ImageData string `json:"image_data,omitempty"` // base64 string (no data: URI prefix)
+	MimeType  string `json:"mime_type,omitempty"`  // e.g. "image/png", "image/jpeg"
+
 	// ToolUse: a model request to invoke a tool.
 	ID    string          `json:"id,omitempty"`
 	Name  string          `json:"name,omitempty"`
@@ -54,6 +59,11 @@ type ContentBlock struct {
 
 // TextBlock builds a text content block.
 func TextBlock(s string) ContentBlock { return ContentBlock{Type: BlockText, Text: s} }
+
+// ImageBlock builds an image content block from base64 data and MIME type.
+func ImageBlock(base64Data, mimeType string) ContentBlock {
+	return ContentBlock{Type: BlockImage, ImageData: base64Data, MimeType: mimeType}
+}
 
 // ToolResultText builds a tool_result block carrying a single text block.
 func ToolResultText(toolUseID, text string, isError bool) ContentBlock {

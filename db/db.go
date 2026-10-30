@@ -252,17 +252,26 @@ ON CONFLICT (agent_id, var_name) DO UPDATE
 		}
 		_ = d.SetSetting("interactive_shell_default_v1", "true")
 	}
-	// Seed the built-in browser (Playwright) MCP once — DISABLED by default (用户
-	// 需要时自行启用), no proxy by default. The traffic-capture toggle injects/strips
-	// the recording proxy + CA at runtime (server.Manager.syncBrowserMCPProxy).
-	// Insert only if absent so we never clobber user edits (args/env/enabled/
-	// visibility) on restart.
+	// Seed the built-in browser MCP once — uses agent-browser with CloakBrowser
+	// (stealth Chromium, 87 C++ patches for WAF/bot-detection bypass).
+	// DISABLED by default — user enables when needed.
+	// Insert only if absent so we never clobber user edits.
 	if _, err := d.Exec(`
 INSERT INTO mcp_servers(name, transport, command, args, env, enabled)
-VALUES ('browser', 'stdio', 'npx', $1, '{}', false)
+VALUES ('browser', 'stdio', 'agent-browser', $1, '{}', false)
 ON CONFLICT (name) DO NOTHING`,
-		`["@playwright/mcp","--headless"]`); err != nil {
+		`["mcp"]`); err != nil {
 		return fmt.Errorf("seed browser mcp: %w", err)
+	}
+	// Migrate existing Playwright browser MCP to CloakBrowser (one-time).
+	if v, _, _ := d.GetSetting("browser_mcp_cloakbrowser_v1"); v != "done" {
+		if _, err := d.Exec(`
+UPDATE mcp_servers SET command='agent-browser', args=$1
+WHERE name='browser' AND command='npx' AND args::text LIKE '%@playwright/mcp%'`,
+			`["mcp"]`); err != nil {
+			return fmt.Errorf("migrate browser mcp to cloakbrowser: %w", err)
+		}
+		_ = d.SetSetting("browser_mcp_cloakbrowser_v1", "done")
 	}
 	// NOTE: the placeholder ScopeSentry data-source MCP (empty URL + empty X-API-Key,
 	// disabled) is seeded directly in schema.sql §F so a raw `psql < schema.sql` init
@@ -322,7 +331,8 @@ ON CONFLICT DO NOTHING`, r.kind, r.pattern, r.note); err != nil {
 // declares `mcps: ScopeSentry`, which only takes effect once it's made visible and
 // that MCP is enabled/configured.
 var builtinSkillVisibility = map[string][]string{
-	"api-recon": {"auto", "pentest", "worker"},
+	"api-recon":     {"auto", "pentest", "worker"},
+	"agent-browser": {"auto", "pentest", "worker"},
 }
 
 // seedBuiltinSkillVisibility binds the shipped built-in skills to their default

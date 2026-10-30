@@ -22,6 +22,7 @@ import (
 
 	"github.com/Autumn-27/artex/llmrec"
 	"github.com/Autumn-27/norma/agentcore"
+	"github.com/Autumn-27/norma/llm/windsurf"
 	"github.com/Autumn-27/norma/compaction"
 	"github.com/Autumn-27/norma/llm"
 	acperm "github.com/Autumn-27/norma/permission"
@@ -54,6 +55,7 @@ type Config struct {
 	//   "" = 不发送(默认); "low"/"medium"/"high"/"xhigh"/"max" = 对应强度.
 	//   OpenAI 映射为顶层 reasoning_effort;Anthropic 映射为 output_config.effort.
 	ReasoningEffort string
+	AgentType       string
 	// Stream 控制该 profile 是否使用流式(SSE)接口。true(默认)= 流式;false = 真·
 	// 非流式(发 stream:false,一次性拿完整 JSON,走 Provider.Complete)。非流式可绕开
 	// 某些网关糟糕的 SSE 实现(空帧、思考字段丢帧),代价是失去运行中的实时进度/实时
@@ -204,6 +206,11 @@ func ConfigFrom(provider, model, baseURL, apiKey, proxy string) Config {
 		Stream:  true, // 默认流式;调用方按 profile 覆盖
 	}
 	switch strings.TrimSpace(provider) {
+	case "windsurf":
+		c.Format = "windsurf"
+		if c.Model == "" {
+			c.Model = "swe-2-high"
+		}
 	case "openai":
 		c.Format = llm.FormatOpenAI
 		// provider appends "/chat/completions"; tolerate a full endpoint URL.
@@ -246,6 +253,8 @@ func (c Config) Provider() string {
 		return "openai"
 	case llm.FormatOpenAIResponses:
 		return "openai-responses"
+	case "windsurf":
+		return "windsurf"
 	}
 	return "anthropic"
 }
@@ -254,6 +263,13 @@ func (c Config) Provider() string {
 // limiter lives on the single provider instance — so planner + all workers +
 // main agent (which share this provider) are bounded by one shared rate limit.
 func (c Config) NewProvider() (llm.Provider, error) {
+	if c.Format == "windsurf" {
+		return windsurf.NewProvider(windsurf.Config{
+			APIKey:  c.APIKey,
+			BaseURL: c.BaseURL,
+			Model:   c.Model,
+		})
+	}
 	client, err := quotaAwareHTTPClient(c.Proxy, c.SessionHeaderKey)
 	if err != nil {
 		return nil, err

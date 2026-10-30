@@ -186,7 +186,7 @@ func NewProvider(cfg Config) (Provider, error) {
 		if cfg.APIVersion == "" {
 			cfg.APIVersion = "2023-06-01"
 		}
-		return &anthropicProvider{cfg: cfg}, nil
+		return &anthropicProvider{cfg: cfg, sessionID: newAnthropicSessionID()}, nil
 	case FormatOpenAI:
 		if cfg.APIKey == "" {
 			cfg.APIKey = os.Getenv("OPENAI_API_KEY")

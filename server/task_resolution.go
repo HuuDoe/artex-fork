@@ -29,7 +29,7 @@ func (s *Server) resolutionFromProfile(p *db.LLMProfile, source string) taskLLMR
 		Model:     p.Model,
 		Source:    source,
 	}
-	if p.APIKey == "" {
+	if p.APIKey == "" && p.Format != "windsurf" {
 		result.Reason = "LLM profile API Key not set"
 		return result
 	}

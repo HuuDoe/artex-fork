@@ -48,16 +48,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       dnsutils iputils-ping netcat-openbsd inetutils-telnet whois nmap \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
+    && curl -fsSL https://download.docker.com/linux/static/stable/$(uname -m)/docker-27.5.1.tgz \
+       | tar xz --strip-components=1 -C /usr/local/bin docker/docker \
     && rm -rf /var/lib/apt/lists/*
-# 预装 Playwright MCP 与 CLI（全局），运行时不再 npx 联网下载。
-# @playwright/mcp：browser MCP 直接 `npx @playwright/mcp`（已全局装好，无需 -y/@latest）。
-# @playwright/cli：提供 playwright-cli，装完顺带 --help 验证可执行。
-# 再装 playwright（提供浏览器管理），装完用 --with-deps 预置 chromium 及其系统依赖，
-# 这样容器内 MCP/CLI 首次启动即可用，不再联网下载浏览器。
-RUN npm install -g @playwright/mcp@latest @playwright/cli@latest playwright@latest \
-    && playwright-cli --help \
-    && playwright install --with-deps chromium \
+# CloakBrowser: stealth Chromium (87 source-level C++ patches, bypasses bot detection).
+# Replaces Playwright's stock Chromium which gets fingerprinted by WAFs.
+# Also install agent-browser CLI for browser automation via CDP.
+# Xvfb + noVNC for remote headed viewing when human intervention is needed.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      xvfb x11vnc novnc websockify \
+      libglib2.0-0 libnss3 libnspr4 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 \
+      libcups2 libdrm2 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 \
+      libcairo2 libasound2 libxshmfence1 libx11-xcb1 libxfixes3 libxkbcommon0 \
+      fonts-liberation \
+    && npm install -g @playwright/mcp@latest cloakbrowser agent-browser \
+    && npx cloakbrowser install \
     && rm -rf /var/lib/apt/lists/*
+RUN ln -sf /root/.cloakbrowser/chromium-*/chrome /root/.cloakbrowser/chrome
+ENV CHROME_PATH=/root/.cloakbrowser/chrome \
+    AGENT_BROWSER_EXECUTABLE_PATH=/root/.cloakbrowser/chrome \
+    AGENT_BROWSER_ARGS="--no-sandbox,--disable-gpu,--disable-dev-shm-usage,--remote-allow-origins=*"
 WORKDIR /app
 # 构建阶段产出的单二进制（内嵌前端）
 COPY --from=gobuild /out/artex /app/artex
@@ -69,6 +79,6 @@ RUN chmod +x /app/artex /app/start.sh
 COPY skills/ /app/skills/
 # data/（SQLite + jwt.key）持久化点
 VOLUME ["/app/data"]
-EXPOSE 8787 8788
+EXPOSE 8787 8788 6080
 ENTRYPOINT ["/app/start.sh"]
 CMD ["-addr", ":8787", "-proxy", ":8788"]

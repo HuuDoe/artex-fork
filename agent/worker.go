@@ -205,10 +205,16 @@ func proxyEnv(proxyAddr, caCert string) []string {
 	if proxyAddr == "" {
 		return nil
 	}
+	// NO_PROXY excludes internal infrastructure from the MITM proxy so agent
+	// commands that talk to the Docker daemon (tcp://127.0.0.1:2375), locally
+	// deployed services, or the ARTEX API itself don't get intercepted — which
+	// caused hangs and broken Docker builds when capture was enabled.
+	const noProxy = "localhost,127.0.0.1,::1,postgres,.internal"
 	env := []string{
 		"HTTP_PROXY=" + proxyAddr, "HTTPS_PROXY=" + proxyAddr,
 		"http_proxy=" + proxyAddr, "https_proxy=" + proxyAddr,
 		"ALL_PROXY=" + proxyAddr, "all_proxy=" + proxyAddr, // socks5 egress: curl reads only this
+		"NO_PROXY=" + noProxy, "no_proxy=" + noProxy,
 		"NODE_USE_ENV_PROXY=1", // Node 24+: honor HTTP(S)_PROXY in built-in fetch/http
 	}
 	if caCert != "" {
@@ -290,7 +296,22 @@ func workerSystem(proxyAddr, caCert, dataDir, runDir string) string {
 	// caCert is present only when the recording MITM is on, which is exactly when
 	// the traffic_* tools are registered — so it gates the traffic-tool note.
 	// Optional finding guidance is added for every role after tool resolution.
-	return body + workerTrafficBlock(caCert != "") + workerArtifactSpec(runDir)
+	return body + workerTrafficBlock(caCert != "") + dockerBlock() + browserBlock() + workerArtifactSpec(runDir)
+}
+
+func dockerBlock() string {
+	host := os.Getenv("DOCKER_HOST")
+	if host == "" {
+		return ""
+	}
+	return "\n\n**Docker**：docker CLI is available (`docker run`, `docker compose`, etc.) and talks to an isolated Docker-in-Docker daemon. Containers you create are fully sandboxed. Services you deploy with `-p <port>:<port>` are reachable at `localhost:<port>` as usual."
+}
+
+func browserBlock() string {
+	if os.Getenv("CHROME_PATH") == "" {
+		return ""
+	}
+	return "\n\n**Browser**：CloakBrowser (stealth Chromium, bypasses WAF/bot detection) is available via `agent-browser` CLI. See the `agent-browser` skill for full usage. Headless by default; pass `--headed` when human intervention is needed (operator views at `http://localhost:6080/vnc.html`)."
 }
 
 // renderIntentTask formats the claimed intent for the worker's launch USER message:

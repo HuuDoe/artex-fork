@@ -422,7 +422,7 @@ func (t *Traffic) maybePassthrough(f *mproxy.Flow, err error) {
 // target) is at fault — HTTP/2 handling, HEAD-with-body, or a protocol violation.
 func proxyCausedErr(err error) bool {
 	s := strings.ToLower(err.Error())
-	for _, p := range []string{"head request", "http2", "http/2", "protocol error", "protocol_error", "malformed"} {
+	for _, p := range []string{"head request", "http2", "http/2", "protocol error", "protocol_error", "malformed", "tls:", "handshake", "connection reset", "broken pipe"} {
 		if strings.Contains(s, p) {
 			return true
 		}

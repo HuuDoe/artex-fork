@@ -2,6 +2,8 @@ package llm
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,7 +11,41 @@ import (
 	"net/http"
 )
 
-type anthropicProvider struct{ cfg Config }
+type anthropicProvider struct {
+	cfg       Config
+	sessionID string
+}
+
+func newAnthropicSessionID() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return "ses_" + hex.EncodeToString(b)[:24]
+}
+
+func newTraceID() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+func newSpanID() string {
+	b := make([]byte, 8)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+func setOpenCodeHeaders(r *http.Request, sessionID string) {
+	r.Header.Set("User-Agent", "opencode/latest/2.1.1/cli")
+	r.Header.Set("anthropic-beta", "interleaved-thinking-2025-05-14")
+	r.Header.Set("x-opencode-client", "cli")
+	r.Header.Set("x-opencode-session", sessionID)
+	r.Header.Set("x-opencode-session-id", sessionID)
+	r.Header.Set("x-session-affinity", sessionID)
+	r.Header.Set("x-session-id", sessionID)
+	tid := newTraceID()
+	sid := newSpanID()
+	r.Header.Set("traceparent", fmt.Sprintf("00-%s-%s-01", tid, sid))
+}
 
 type anthropicSystemBlock struct {
 	Type         string         `json:"type"`
@@ -117,6 +153,7 @@ func (p *anthropicProvider) Stream(ctx context.Context, req CompletionRequest) i
 			r.Header.Set("x-api-key", p.cfg.APIKey)
 			r.Header.Set("anthropic-version", p.cfg.APIVersion)
 			r.Header.Set("accept", "text/event-stream")
+			setOpenCodeHeaders(r, p.sessionID)
 		}, "anthropic")
 		if err != nil {
 			yield(StreamEvent{}, err)
@@ -164,6 +201,7 @@ func (p *anthropicProvider) Complete(ctx context.Context, req CompletionRequest)
 		r.Header.Set("x-api-key", p.cfg.APIKey)
 		r.Header.Set("anthropic-version", p.cfg.APIVersion)
 		r.Header.Set("accept", "application/json")
+		setOpenCodeHeaders(r, p.sessionID)
 	}, "anthropic")
 	if err != nil {
 		return Message{}, "", Usage{}, err

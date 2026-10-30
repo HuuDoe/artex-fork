@@ -334,7 +334,8 @@ func (s *Server) loadLLMConfig() (agent.Config, bool) {
 	cfg.MaxTokens, cfg.MaxTokensField = p.MaxTokens, p.MaxTokensField
 	cfg.SessionHeaderKey = p.SessionHeaderKey
 	s.applyProfileRetry(&cfg, p)
-	if cfg.APIKey == "" {
+	cfg.AgentType = p.AgentType
+	if cfg.APIKey == "" && p.Format != "windsurf" {
 		return cfg, false
 	}
 	s.cfgMu.Lock()
@@ -505,7 +506,8 @@ func (s *Server) loadProfileConfig(id int64) (agent.Config, bool) {
 	cfg.MaxTokens, cfg.MaxTokensField = p.MaxTokens, p.MaxTokensField
 	cfg.SessionHeaderKey = p.SessionHeaderKey
 	s.applyProfileRetry(&cfg, p)
-	if cfg.APIKey == "" {
+	cfg.AgentType = p.AgentType
+	if cfg.APIKey == "" && p.Format != "windsurf" {
 		return cfg, false
 	}
 	return cfg, true
@@ -1375,12 +1377,14 @@ func (s *Server) testLLM(w http.ResponseWriter, r *http.Request) {
 		ProfileID        *int64 `json:"profile_id"`         // 测已存 profile 时传入：api_key 为空则用它存的 key
 		Streaming        *bool  `json:"streaming"`          // 省略=流式，与保存 profile 时同一套默认
 		SessionHeaderKey string `json:"session_header_key"` // 非空=测试时也带该自定义会话头，值为一次性随机 session id
+		AgentType        string `json:"agent_type"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
 	cfg := agent.ConfigFrom(req.Provider, req.Model, req.BaseURL, req.APIKey, req.Proxy)
+	cfg.AgentType = req.AgentType
 	// mirror production: send the SAME thinking params so a provider that rejects the
 	// reasoning_effort/thinking field fails the test too (no false "test ok, run 400").
 	cfg.ThinkingType = req.ThinkingType
@@ -1412,7 +1416,7 @@ func (s *Server) testLLM(w http.ResponseWriter, r *http.Request) {
 		cfg.APIKey = s.llmCfg.APIKey
 		s.cfgMu.Unlock()
 	}
-	if cfg.APIKey == "" {
+	if cfg.APIKey == "" && cfg.Format != "windsurf" {
 		writeJSON(w, 200, map[string]any{"ok": false, "error": "API Key not provided"})
 		return
 	}
@@ -1734,6 +1738,23 @@ func (s *Server) getTask(w http.ResponseWriter, r *http.Request) {
 	dto := taskDTO(t, s.resolvedTaskStatus(t))
 	archiveBlockers, _ := s.m.PG().TaskArchiveBlockers()
 	applyTaskArchiveBlocker(&dto, archiveBlockers)
+	allMetrics, _ := s.m.PG().TaskListMetricsAll()
+	if metrics, ok := allMetrics[t.ExpID]; ok {
+		dto.Tokens = tokenTotalDTO(metrics.Tokens)
+		dto.LastActivity = metrics.LastActivity
+		if live := s.engine.LastActivity(t.ID); live > dto.LastActivity {
+			dto.LastActivity = live
+		}
+		dto.GoalsTotal = metrics.Goals.Total
+		dto.GoalsMet = metrics.Goals.Met
+		dto.InFlight = metrics.RunningIntents
+		dto.Findings = FindingSeverityDTO{
+			Critical: metrics.Findings.Critical,
+			High:     metrics.Findings.High,
+			Medium:   metrics.Findings.Medium,
+			Low:      metrics.Findings.Low,
+		}
+	}
 	writeJSON(w, 200, dto)
 }
 

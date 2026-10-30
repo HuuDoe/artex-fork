@@ -79,7 +79,7 @@ function healthOf(
   m: LLMPoolMember | undefined,
   t: (key: string, params?: Record<string, string | number>) => string,
 ): Health {
-  if (!p.api_key_hint) {
+  if (!p.api_key_hint && p.format !== "windsurf") {
     return {
       label: t("llm.health.noKey"),
       cls: "border-muted-foreground/40 text-muted-foreground",
@@ -316,7 +316,7 @@ function ProfileSheet({
   const { t } = useI18n();
   const isNew = !profile;
   const [name, setName] = React.useState("");
-  const [format, setFormat] = React.useState<"anthropic" | "openai" | "openai-responses">("anthropic");
+  const [format, setFormat] = React.useState<"anthropic" | "openai" | "openai-responses" | "windsurf">("anthropic");
   const [model, setModel] = React.useState("");
   const [baseUrl, setBaseUrl] = React.useState("");
   const [proxy, setProxy] = React.useState("");
@@ -345,7 +345,7 @@ function ProfileSheet({
   React.useEffect(() => {
     if (!open) return;
     setName(profile?.name ?? "");
-    setFormat(profile?.format === "openai" || profile?.format === "openai-responses" ? profile.format : "anthropic");
+    setFormat(profile?.format === "openai" || profile?.format === "openai-responses" || profile?.format === "windsurf" ? profile.format : "anthropic");
     setModel(profile?.model ?? "");
     setBaseUrl(profile?.base_url ?? "");
     setProxy(profile?.proxy ?? "");
@@ -406,6 +406,7 @@ function ProfileSheet({
         profileId,
         streaming,
         sessionHeaderKey.trim(),
+        "",
       );
       // 回复内容一并展示：看得见模型确实说了话，才算和会话里跑通是一回事。
       if (r.ok)
@@ -497,7 +498,7 @@ function ProfileSheet({
             </div>
             <div className="grid gap-2">
               <Label>{t("llm.field.format")}</Label>
-              <Select value={format} onValueChange={(v) => setFormat(v as "anthropic" | "openai" | "openai-responses")}>
+              <Select value={format} onValueChange={(v) => setFormat(v as "anthropic" | "openai" | "openai-responses" | "windsurf")}>
                 <SelectTrigger>
                   <SelectValue placeholder={t("llm.placeholder.format")} />
                 </SelectTrigger>
@@ -505,6 +506,7 @@ function ProfileSheet({
                   <SelectItem value="anthropic">Anthropic</SelectItem>
                   <SelectItem value="openai">OpenAI (Chat Completions)</SelectItem>
                   <SelectItem value="openai-responses">OpenAI (Responses API)</SelectItem>
+                  <SelectItem value="windsurf">Windsurf (Connect)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -557,55 +559,65 @@ function ProfileSheet({
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="p-base-url">{t("llm.field.baseUrl")}</Label>
-            <Input
-              id="p-base-url"
-              className="font-mono"
-              placeholder="https://api.openai.com/v1"
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="p-proxy">{t("llm.field.proxy")}</Label>
-            <Input
-              id="p-proxy"
-              className="font-mono"
-              placeholder="socks5://user:pass@127.0.0.1:1080 · http://127.0.0.1:8080"
-              value={proxy}
-              onChange={(e) => setProxy(e.target.value)}
-            />
+          {format === "windsurf" && (
             <p className="text-muted-foreground text-xs">
-              {t("llm.field.proxyHint")}
+              Direct Connect protocol to Codeium. Uses local credentials (~/.local/share/devin/credentials.toml). No API key needed.
             </p>
-          </div>
+          )}
 
-          <div className="grid gap-2">
-            <Label htmlFor="p-session-header">{t("llm.field.sessionHeader")}</Label>
-            <Input
-              id="p-session-header"
-              className="font-mono"
-              placeholder={t("llm.placeholder.sessionHeader")}
-              value={sessionHeaderKey}
-              onChange={(e) => setSessionHeaderKey(e.target.value)}
-            />
-            <p className="text-muted-foreground text-xs">
-              {t("llm.field.sessionHeaderHint")}
-            </p>
-          </div>
+          {format !== "windsurf" && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="p-base-url">{t("llm.field.baseUrl")}</Label>
+                <Input
+                  id="p-base-url"
+                  className="font-mono"
+                  placeholder="https://api.openai.com/v1"
+                  value={baseUrl}
+                  onChange={(e) => setBaseUrl(e.target.value)}
+                />
+              </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="p-api-key">{t("llm.field.apiKey")}</Label>
-            <Input
-              id="p-api-key"
-              type="password"
-              placeholder={keyHint ? t("llm.placeholder.apiKeyConfigured", { hint: keyHint }) : "sk-…"}
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
-          </div>
+              <div className="grid gap-2">
+                <Label htmlFor="p-proxy">{t("llm.field.proxy")}</Label>
+                <Input
+                  id="p-proxy"
+                  className="font-mono"
+                  placeholder="socks5://user:pass@127.0.0.1:1080 · http://127.0.0.1:8080"
+                  value={proxy}
+                  onChange={(e) => setProxy(e.target.value)}
+                />
+                <p className="text-muted-foreground text-xs">
+                  {t("llm.field.proxyHint")}
+                </p>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="p-session-header">{t("llm.field.sessionHeader")}</Label>
+                <Input
+                  id="p-session-header"
+                  className="font-mono"
+                  placeholder={t("llm.placeholder.sessionHeader")}
+                  value={sessionHeaderKey}
+                  onChange={(e) => setSessionHeaderKey(e.target.value)}
+                />
+                <p className="text-muted-foreground text-xs">
+                  {t("llm.field.sessionHeaderHint")}
+                </p>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="p-api-key">{t("llm.field.apiKey")}</Label>
+                <Input
+                  id="p-api-key"
+                  type="password"
+                  placeholder={keyHint ? t("llm.placeholder.apiKeyConfigured", { hint: keyHint }) : "sk-…"}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
+              </div>
+            </>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="grid gap-2">

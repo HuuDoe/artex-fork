@@ -20,6 +20,17 @@ set -u
 
 cd "$(dirname "$0")" || exit 1
 
+# Start Xvfb + x11vnc + websockify if DISPLAY is set and Xvfb is installed.
+# This gives agents a headed browser (CloakBrowser) and lets the operator
+# view/interact via noVNC at http://localhost:6080/vnc.html.
+if [ -n "${DISPLAY:-}" ] && command -v Xvfb >/dev/null 2>&1; then
+	Xvfb "$DISPLAY" -screen 0 1920x1080x24 &
+	sleep 1
+	x11vnc -display "$DISPLAY" -forever -shared -nopw -rfbport 5900 >/dev/null 2>&1 &
+	websockify --web /usr/share/novnc 6080 localhost:5900 >/dev/null 2>&1 &
+	echo "[artex] Xvfb + noVNC started (view at http://localhost:6080/vnc.html)"
+fi
+
 BIN=./artex
 [ -x "$BIN" ] || { echo "[artex] 找不到可执行文件 $BIN" >&2; exit 1; }
 
