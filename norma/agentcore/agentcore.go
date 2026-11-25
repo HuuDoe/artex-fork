@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"iter"
+	"net/http"
 	"strings"
 	"time"
 
@@ -103,6 +104,9 @@ type Options struct {
 	// WebFetchInsecureTLS skips TLS verification for WebFetch (curl -k). Blunt
 	// fallback when no CA cert is available; prefer WebFetchCACert.
 	WebFetchInsecureTLS bool
+	// WebFetchWrapTransport, when set, wraps the WebFetch client's transport —
+	// e.g. to add request pacing.
+	WebFetchWrapTransport func(http.RoundTripper) http.RoundTripper
 	// EnableWebSearch adds the network-facing web_search tool (permission-gated).
 	EnableWebSearch bool
 	// WebSearchBackend selects the search backend: "ddgs" (DuckDuckGo, no key),
@@ -281,7 +285,7 @@ func NewSession(opts Options) *Session {
 		tools = append(tools, opts.Skills.Tool())
 	}
 	if opts.EnableWebFetch {
-		tools = append(tools, tool.NewWebFetch(tool.WebFetchConfig{Proxy: opts.WebFetchProxy, CACert: opts.WebFetchCACert, InsecureTLS: opts.WebFetchInsecureTLS}))
+		tools = append(tools, tool.NewWebFetch(tool.WebFetchConfig{Proxy: opts.WebFetchProxy, CACert: opts.WebFetchCACert, InsecureTLS: opts.WebFetchInsecureTLS, WrapTransport: opts.WebFetchWrapTransport}))
 	}
 	if opts.EnableWebSearch {
 		// A misconfigured backend (unknown name, or brave-free without a key)

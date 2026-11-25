@@ -1,6 +1,6 @@
 // Package windsurf implements llm.Provider by calling the Windsurf/Codeium
 // inference API directly via the Connect protocol (protobuf-over-HTTP).
-// This bypasses the ACP harness entirely, giving the ARTEX agent loop
+// This bypasses the ACP harness entirely, giving the FALCON agent loop
 // direct control over tool calling and message history.
 //
 // Wire format: server-streaming Connect (Content-Type: application/connect+proto)
@@ -172,7 +172,7 @@ func (p *provider) Stream(ctx context.Context, req llm.CompletionRequest) iter.S
 				if json.Unmarshal(msg, &trailer) == nil && trailer.Error != nil {
 					code := trailer.Error.Code
 					// Server-side "internal error" disguised as invalid_argument is transient;
-					// include the raw trailer so ARTEX logs enough to debug repeat occurrences.
+					// include the raw trailer so FALCON logs enough to debug repeat occurrences.
 					yield(llm.StreamEvent{}, fmt.Errorf("windsurf: %s: %s (trailer: %s)", code, trailer.Error.Message, msg))
 					return
 				}

@@ -14,13 +14,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Autumn-27/artex/agent"
-	pgdb "github.com/Autumn-27/artex/db"
-	"github.com/Autumn-27/artex/enrich"
-	"github.com/Autumn-27/artex/guard"
-	"github.com/Autumn-27/artex/intercept"
-	"github.com/Autumn-27/artex/traffic"
 	actool "github.com/Autumn-27/norma/tool"
+	"github.com/MithrandirHEX/falcon/agent"
+	pgdb "github.com/MithrandirHEX/falcon/db"
+	"github.com/MithrandirHEX/falcon/egress"
+	"github.com/MithrandirHEX/falcon/enrich"
+	"github.com/MithrandirHEX/falcon/guard"
+	"github.com/MithrandirHEX/falcon/intercept"
+	"github.com/MithrandirHEX/falcon/traffic"
 )
 
 // Task is one engagement: a description + goal + its own exploration store,
@@ -245,6 +246,10 @@ type Manager struct {
 	// capture is on it becomes the MITM's upstream; when capture is off it is
 	// injected into agent bash env / WebFetch directly. See ProxyAddr.
 	globalProxy string
+	// passthroughHosts is the comma-separated set of hosts the MITM always
+	// tunnels transparently (never intercepted, never recorded), so the real
+	// client TLS handshake reaches the target. Stealth-critical hosts only.
+	passthroughHosts string
 }
 
 // Settings keys the UI toggles at runtime.
@@ -260,8 +265,15 @@ const (
 	// (http/https/socks5). Empty = direct. Distinct from web_search_proxy (which
 	// only routes the search backend) and the per-profile LLM proxy.
 	settingGlobalProxy = "global_proxy"
-	settingWorkers     = "workers"
-	settingLLMRecord   = "llm_record"
+	// settingPassthroughHosts is a comma-separated host list the MITM tunnels
+	// transparently — interception off for those hosts (no recording), so
+	// stealth clients (CloakBrowser) keep their real TLS fingerprint.
+	settingPassthroughHosts = "passthrough_hosts"
+	// settingNoiseProfile is the egress noise profile (off|quiet|balanced|
+	// aggressive). When stored it wins over FALCON_NOISE_PROFILE.
+	settingNoiseProfile = "noise_profile"
+	settingWorkers      = "workers"
+	settingLLMRecord    = "llm_record"
 	// LLM 轮询(故障转移)。默认关闭——开启后走「全局激活配置」的 agent 在当前配置
 	// 不可用(余额不足/key 失效/限流/服务异常)时自动切到下一个配置。
 	// settingLLMPoolBindFallback 仅在轮询开启时有意义:默认关闭,即 agent/任务显式
@@ -439,7 +451,14 @@ func NewManager(dir, proxyAddr string) (*Manager, error) {
 			log.Printf("[proxy] global proxy %q invalid, ignored: %v", m.globalProxy, err)
 		}
 	}
+	if v, ok, _ := pg.GetSetting(settingPassthroughHosts); ok {
+		m.passthroughHosts = strings.TrimSpace(v)
+	}
+	if m.traffic != nil {
+		m.traffic.SetPassthroughHosts(splitHosts(m.passthroughHosts))
+	}
 	m.enrich = enrich.New(m.assets, m.ProxyAddr, 4)
+	egress.SetProfile(startupNoiseProfile(pg))
 	// Reconcile the seeded browser MCP with the persisted capture state, so a
 	// restart with capture already on keeps Playwright routed through the proxy.
 	m.syncBrowserMCPProxy()
@@ -798,6 +817,40 @@ func (m *Manager) SetGlobalProxy(raw string) error {
 	// Keep the browser MCP's egress in sync with the new global proxy too.
 	m.syncBrowserMCPProxy()
 	return nil
+}
+
+// PassthroughHosts returns the configured comma-separated host list.
+func (m *Manager) PassthroughHosts() string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.passthroughHosts
+}
+
+// SetPassthroughHosts persists and applies the passthrough host list — hosts
+// the MITM tunnels transparently (no interception, no recording). Takes effect
+// immediately for new connections; no agent rebuild needed.
+func (m *Manager) SetPassthroughHosts(raw string) error {
+	raw = strings.TrimSpace(raw)
+	if err := m.pg.SetSetting(settingPassthroughHosts, raw); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	m.passthroughHosts = raw
+	m.mu.Unlock()
+	if m.traffic != nil {
+		m.traffic.SetPassthroughHosts(splitHosts(raw))
+	}
+	return nil
+}
+
+// splitHosts parses a comma/whitespace-separated host list.
+func splitHosts(raw string) []string {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	return strings.FieldsFunc(raw, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\n' || r == '\t' || r == ';'
+	})
 }
 
 func (m *Manager) Close() error {

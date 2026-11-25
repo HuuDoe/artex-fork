@@ -2,13 +2,13 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-artex}
+      POSTGRES_USER: ${POSTGRES_USER:-falcon}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env 设置 POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-artex}
+      POSTGRES_DB: ${POSTGRES_DB:-falcon}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-artex} -d ${POSTGRES_DB:-artex}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-falcon} -d ${POSTGRES_DB:-falcon}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -32,11 +32,10 @@ services:
       retries: 5
     restart: unless-stopped
 
-  artex:
-    # 镜像源由本仓库自维护（原 autumn27/artex 已从 Docker Hub 删除）。
-    # 正常部署直接拉取本镜像；拉取失败（或想改代码）时本地构建：
+  falcon:
+    # 镜像由本仓库本地构建；如需推送私有 registry 请自行修改 image 名：
     #   docker compose build
-    image: mianhuatang11/artex:${ARTEX_TAG:-latest}
+    image: falcon:${FALCON_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -46,13 +45,13 @@ services:
       dind:
         condition: service_healthy
     environment:
-      ARTEX_PG_DSN: postgres://${POSTGRES_USER:-artex}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-artex}?sslmode=disable
+      FALCON_PG_DSN: postgres://${POSTGRES_USER:-falcon}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-falcon}?sslmode=disable
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      ARTEX_LLM_PROVIDER: ${ARTEX_LLM_PROVIDER:-}
-      ARTEX_LLM_MODEL: ${ARTEX_LLM_MODEL:-}
-      ARTEX_LLM_BASE_URL: ${ARTEX_LLM_BASE_URL:-}
-      ARTEX_LLM_PROXY: ${ARTEX_LLM_PROXY:-}
+      FALCON_LLM_PROVIDER: ${FALCON_LLM_PROVIDER:-}
+      FALCON_LLM_MODEL: ${FALCON_LLM_MODEL:-}
+      FALCON_LLM_BASE_URL: ${FALCON_LLM_BASE_URL:-}
+      FALCON_LLM_PROXY: ${FALCON_LLM_PROXY:-}
       DOCKER_HOST: tcp://127.0.0.1:2375
       DISPLAY: ":99"
     network_mode: "service:dind"

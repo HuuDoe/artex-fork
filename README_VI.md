@@ -1,6 +1,6 @@
 <div align="center">
 
-# ARTEX
+# FALCON
 
 Hệ thống Kiểm thử Thâm Nhập Tự Động bằng AI (Backend Go + Frontend Next.js)
 
@@ -8,7 +8,7 @@ Hệ thống Kiểm thử Thâm Nhập Tự Động bằng AI (Backend Go + Fron
 
 🌐 **Demo trực tuyến (dữ liệu mô phỏng)**: [https://artex-demo.mhtsec.com](https://artex-demo.mhtsec.com)
 
-📦 **Kho lưu trữ này là bản sao lưu mã nguồn thuần cuối cùng của ARTEX. Docker image gốc `autumn27/artex` đã không còn; hiện image do chính kho lưu trữ này duy trì với tên `mianhuatang11/artex` (Docker Hub). Nếu kéo image thất bại, hãy chạy `docker compose build` để build cục bộ từ mã nguồn thuần — không phụ thuộc vào bản build sẵn có bên ngoài.**
+📦 **Kho lưu trữ này là bản sao lưu mã nguồn thuần cuối cùng của ARTEX. Docker image gốc `autumn27/artex` đã không còn; hiện image do chính kho lưu trữ này duy trì với tên `falcon` (Docker Hub). Nếu kéo image thất bại, hãy chạy `docker compose build` để build cục bộ từ mã nguồn thuần — không phụ thuộc vào bản build sẵn có bên ngoài.**
 
 </div>
 
@@ -52,7 +52,7 @@ Hệ thống Kiểm thử Thâm Nhập Tự Động bằng AI (Backend Go + Fron
 ## Chi tiết bản ghi phê duyệt
 
 Trang **Lịch sử phê duyệt** toàn cục, tab **Phê duyệt chặn** trong từng tác vụ và các thẻ phê duyệt trong khung trò chuyện đều hỗ trợ mở rộng để xem chi tiết. Cách bố trí tham khảo từ thành phần chi tiết phê duyệt của
-[AegisHook](https://github.com/RuoJi6/AegisHook/blob/main/web/src/components/CallDetail.vue), vẫn sử dụng thành phần và giao diện riêng của ARTEX:
+[AegisHook](https://github.com/RuoJi6/AegisHook/blob/main/web/src/components/CallDetail.vue), vẫn sử dụng thành phần và giao diện riêng của FALCON:
 
 
 ## Đồng bộ tài nguyên (ScopeSentry)
@@ -61,7 +61,7 @@ Dữ liệu tài nguyên có thể được đồng bộ trực tiếp từ [Sco
 
 - Tại trang **Đồng bộ tài nguyên**, nhập địa chỉ và API Key của ScopeSentry để kết nối nguồn dữ liệu;
 - Chọn mục tiêu và loại tài nguyên (tên miền / tên miền phụ / IP / cổng / website / endpoint…) theo chiều **dự án** hoặc **tác vụ**;
-- Nhập một chạm và gộp theo phạm vi tài nguyên của công ty, sẵn sàng cho các agent khám phá trong đồ thị tài nguyên của ARTEX.
+- Nhập một chạm và gộp theo phạm vi tài nguyên của công ty, sẵn sàng cho các agent khám phá trong đồ thị tài nguyên của FALCON.
 
 ---
 
@@ -72,8 +72,8 @@ Dữ liệu tài nguyên có thể được đồng bộ trực tiếp từ [Sco
 ### Cách 1: Script cài đặt một chạm (khuyến nghị)
 
 ```bash
-git clone https://github.com/mhtsec/ARTEX.git
-cd ARTEX
+git clone https://github.com/MithrandirHEX/falcon.git
+cd FALCON
 ./install.sh
 ```
 
@@ -87,14 +87,14 @@ Sau khi cài đặt, mở **http://localhost:8787** (lần truy cập đầu ti�
 ### Cách 2: Docker Compose (thủ công)
 
 ```bash
-git clone https://github.com/mhtsec/ARTEX.git
-cd ARTEX
+git clone https://github.com/MithrandirHEX/falcon.git
+cd FALCON
 cp .env.example .env          # điền POSTGRES_PASSWORD, tùy chọn ANTHROPIC_API_KEY
-docker compose up -d          # kéo image mianhuatang11/artex + postgres
+docker compose up -d          # kéo image falcon + postgres
 # → http://localhost:8787
 ```
 
-> Image gốc `autumn27/artex` đã bị xóa khỏi Docker Hub; hiện image do chính kho lưu trữ này duy trì với tên **`mianhuatang11/artex`**.
+> Image gốc `autumn27/artex` đã bị xóa khỏi Docker Hub; hiện image do chính kho lưu trữ này duy trì với tên **`falcon`**.
 > Nếu registry không khả dụng (hoặc bạn muốn tự sửa mã nguồn), chỉ cần build cục bộ từ mã nguồn thuần: `docker compose build && docker compose up -d`.
 > Dockerfile là bản build nhiều giai đoạn (frontend static export → Go static build → image chạy), mặc định dùng các nguồn phụ thuộc thân thiện với mạng Trung Quốc; có thể thêm `--build-arg GOPROXY=... / --build-arg NPM_REGISTRY=...` để ghi đè.
 
@@ -106,16 +106,16 @@ Máy chủ SSE kiểu cũ thường thiết lập luồng sự kiện bằng `GE
 
 ### Cách 3: Tải binary dựng sẵn (Releases)
 
-Tải file zip tương ứng nền tảng của bạn từ [Releases](https://github.com/Autumn-27/ARTEX/releases) của kho gốc (**kho sao lưu này không lưu trữ binary**; nếu Releases gốc cũng không còn, hãy dùng Cách 2 hoặc Cách 4). Sau khi giải nén bạn sẽ có `artex` + `start.sh` (`start.bat` trên Windows) + `skills/` + `config.example.json`:
+Tải file zip tương ứng nền tảng của bạn từ [Releases](https://github.com/Autumn-27/ARTEX/releases) của kho gốc (**kho sao lưu này không lưu trữ binary**; nếu Releases gốc cũng không còn, hãy dùng Cách 2 hoặc Cách 4). Sau khi giải nén bạn sẽ có `falcon` + `start.sh` (`start.bat` trên Windows) + `skills/` + `config.example.json`:
 
 ```bash
 cp config.example.json config.json   # điền thông tin kết nối database
 ./start.sh                           # → http://localhost:8787
 ```
 
-> Hãy dùng `start.sh` / `start.bat` để khởi động thay vì chạy trực tiếp `./artex`. Đây là script giám sát: sau khi chương trình thoát, nó quyết định dựa trên mã thoát có khởi động lại hay không, và
->[cập nhật một chạm trên giao diện](#cách-1-cập-nhật-một-chạm-từ-giao-diện-khuyến-nghị) phụ thuộc vào nó để thay thế binary. Nếu chạy trực tiếp `./artex`, sau khi cập nhật xong chương trình sẽ không được khởi động lại.
-> Chạy nền: `nohup ./start.sh >artex.log 2>&1 &`.
+> Hãy dùng `start.sh` / `start.bat` để khởi động thay vì chạy trực tiếp `./falcon`. Đây là script giám sát: sau khi chương trình thoát, nó quyết định dựa trên mã thoát có khởi động lại hay không, và
+>[cập nhật một chạm trên giao diện](#cách-1-cập-nhật-một-chạm-từ-giao-diện-khuyến-nghị) phụ thuộc vào nó để thay thế binary. Nếu chạy trực tiếp `./falcon`, sau khi cập nhật xong chương trình sẽ không được khởi động lại.
+> Chạy nền: `nohup ./start.sh >falcon.log 2>&1 &`.
 
 ### Cách 4: Build một binary đơn từ mã nguồn
 
@@ -125,7 +125,7 @@ cd web && npm ci && npm run build:static && cd ..
 # 2) Chép vào thư mục nhúng
 cp -r web/out server/webui/dist
 # 3) Build (-tags embedui để nhúng frontend)
-CGO_ENABLED=0 go build -tags embedui -o artex ./cmd/artex
+CGO_ENABLED=0 go build -tags embedui -o falcon ./cmd/falcon
 ./start.sh
 ```
 
@@ -135,13 +135,13 @@ CGO_ENABLED=0 go build -tags embedui -o artex ./cmd/artex
 
 ```bash
 ./build.sh --release
-# sản phẩm: dist/artex-0.3.3-*.zip
+# sản phẩm: dist/falcon-0.3.3-*.zip
 ```
 
-Binary tự giải nén nén bằng UPX có thể không tương thích với một số nhân Linux, môi trường ảo hóa hoặc chính sách bảo mật, nên mặc định bị tắt. Bạn có thể dùng `ARTEX_TARGETS` để tùy chỉnh đích đến; khi đã xác nhận môi trường đích tương thích, có thể truyền `--upx` rõ ràng để thu nhỏ binary thêm:
+Binary tự giải nén nén bằng UPX có thể không tương thích với một số nhân Linux, môi trường ảo hóa hoặc chính sách bảo mật, nên mặc định bị tắt. Bạn có thể dùng `FALCON_TARGETS` để tùy chỉnh đích đến; khi đã xác nhận môi trường đích tương thích, có thể truyền `--upx` rõ ràng để thu nhỏ binary thêm:
 
 ```bash
-ARTEX_TARGETS=linux/amd64,windows/amd64 ./build.sh --release
+FALCON_TARGETS=linux/amd64,windows/amd64 ./build.sh --release
 ./build.sh --target linux/amd64 --upx
 ```
 
@@ -149,50 +149,50 @@ ARTEX_TARGETS=linux/amd64,windows/amd64 ./build.sh --release
 
 ## Cập nhật & nâng cấp
 
-> Nâng cấp chỉ thay chương trình, không đụng tới dữ liệu: volume Postgres `pgdata`, thư mục `./data` (jwt.key / SQLite…) và `./skills` đều được giữ nguyên. **Không cần di chuyển cơ sở dữ liệu thủ công** — `artex` chạy lại `schema.sql` theo cách idempotent mỗi lần khởi động (bao gồm `ADD COLUMN` / `CREATE INDEX IF NOT EXISTS`), tức là "khởi động lại là migrate". Tuy vậy vẫn nên sao lưu `./data` và cơ sở dữ liệu trước khi nâng cấp.
+> Nâng cấp chỉ thay chương trình, không đụng tới dữ liệu: volume Postgres `pgdata`, thư mục `./data` (jwt.key / SQLite…) và `./skills` đều được giữ nguyên. **Không cần di chuyển cơ sở dữ liệu thủ công** — `falcon` chạy lại `schema.sql` theo cách idempotent mỗi lần khởi động (bao gồm `ADD COLUMN` / `CREATE INDEX IF NOT EXISTS`), tức là "khởi động lại là migrate". Tuy vậy vẫn nên sao lưu `./data` và cơ sở dữ liệu trước khi nâng cấp.
 
 ### Cách 1: Cập nhật một chạm từ giao diện (khuyến nghị)
 
 Tại trang **Cấu hình hệ thống** (mục "Cấu hình hệ thống" ở thanh bên → `/system/settings`), thẻ **Phiên bản & Cập nhật** cho phép kiểm tra và cài bản mới mà không cần đăng nhập vào máy chủ.
 
-Bấm "Cập nhật": ARTEX sẽ tải gói phát hành cho nền tảng hiện tại → đối chiếu với `SHA256SUMS` của Release → chạy smoke test binary mới bằng `-h` → tạm đặt thành `artex.new` → chương trình thoát, `start.sh` / `start.bat` khởi động lại để hoàn tất việc thay thế. Trang sẽ tự chờ phiên bản mới hoạt động rồi làm mới.
+Bấm "Cập nhật": FALCON sẽ tải gói phát hành cho nền tảng hiện tại → đối chiếu với `SHA256SUMS` của Release → chạy smoke test binary mới bằng `-h` → tạm đặt thành `falcon.new` → chương trình thoát, `start.sh` / `start.bat` khởi động lại để hoàn tất việc thay thế. Trang sẽ tự chờ phiên bản mới hoạt động rồi làm mới.
 
-- **Thất bại không để lại chương trình hỏng**: nếu kiểm tra hoặc smoke test không đạt, tệp tạm sẽ bị loại bỏ và phiên bản hiện tại vẫn tiếp tục chạy; nếu phiên bản vừa thay thế liên tục khởi động thất bại 3 lần, hệ thống sẽ tự động rollback về `artex.old` (bản thất bại được giữ lại thành `artex.failed` để điều tra).
-- **Có thể rollback bất cứ lúc nào**: phiên bản trước được giữ làm `artex.old`, thẻ này có nút "Quay lại phiên bản trước". Lưu ý cấu trúc cơ sở dữ liệu sẽ không được hoàn tác.
+- **Thất bại không để lại chương trình hỏng**: nếu kiểm tra hoặc smoke test không đạt, tệp tạm sẽ bị loại bỏ và phiên bản hiện tại vẫn tiếp tục chạy; nếu phiên bản vừa thay thế liên tục khởi động thất bại 3 lần, hệ thống sẽ tự động rollback về `falcon.old` (bản thất bại được giữ lại thành `falcon.failed` để điều tra).
+- **Có thể rollback bất cứ lúc nào**: phiên bản trước được giữ làm `falcon.old`, thẻ này có nút "Quay lại phiên bản trước". Lưu ý cấu trúc cơ sở dữ liệu sẽ không được hoàn tác.
 - **Cập nhật sẽ gián đoạn các tác vụ đang chạy** — cập nhật đồng nghĩa với khởi động lại, vì vậy hãy thực hiện khi hệ thống rảnh.
 - **Bản build phát triển không được cập nhật**: chức năng này bị vô hiệu hóa khi phiên bản là `dev` hoặc `git describe` có hậu tố, tránh bản phát hành ghi đè binary đang debug cục bộ.
-- **Dưới Docker chỉ thay chương trình, không thay image**: các công cụ như playwright / nmap bên trong image không được nâng cấp, và việc dựng lại container bằng `docker compose up -d` sẽ quay về phiên bản đi kèm trong image. Muốn nâng cấp cả image, hãy dùng `docker compose pull artex && docker compose up -d artex`.
+- **Dưới Docker chỉ thay chương trình, không thay image**: các công cụ như playwright / nmap bên trong image không được nâng cấp, và việc dựng lại container bằng `docker compose up -d` sẽ quay về phiên bản đi kèm trong image. Muốn nâng cấp cả image, hãy dùng `docker compose pull falcon && docker compose up -d falcon`.
 - Nếu cần proxy để truy cập GitHub, hãy cấu hình **proxy toàn cục** ngay trên trang đó, chuỗi cập nhật sẽ đi qua proxy này. Cập nhật chỉ tải từ các tên miền GitHub và bắt buộc dùng HTTPS.
 
 ### Cách 2: Script cập nhật một chạm
 
 ```bash
-cd ARTEX
+cd FALCON
 ./update.sh
 ```
 
 Script sẽ tùy chọn chạy `git pull` trước, rồi cho bạn chọn **① Cập nhật bằng Docker** hoặc **② Cập nhật bằng build cục bộ** (tương ứng với `install.sh`):
 
-- **① Docker**: có thể chỉ định tag image đích (nhấn Enter để dùng `ARTEX_TAG` trong `.env`, mặc định `latest`) → `docker compose pull` → `docker compose up -d` (khởi động lại với image mới sẽ tự động migrate schema).
-- **② Cục bộ**: build lại sản phẩm static của frontend → build lại `./artex` (có hiệu lực sau khi khởi động lại).
+- **① Docker**: có thể chỉ định tag image đích (nhấn Enter để dùng `FALCON_TAG` trong `.env`, mặc định `latest`) → `docker compose pull` → `docker compose up -d` (khởi động lại với image mới sẽ tự động migrate schema).
+- **② Cục bộ**: build lại sản phẩm static của frontend → build lại `./falcon` (có hiệu lực sau khi khởi động lại).
 
 ### Cách 3: Docker Compose (thủ công)
 
 ```bash
-cd ARTEX
+cd FALCON
 git pull                       # cập nhật compose / script (tùy chọn)
-# ghim phiên bản: đặt ARTEX_TAG=v0.2.0 trong .env; không đặt thì dùng latest
-docker compose pull artex
-docker compose up -d artex     # khởi động lại với image mới → tự động migrate schema
+# ghim phiên bản: đặt FALCON_TAG=v0.2.0 trong .env; không đặt thì dùng latest
+docker compose pull falcon
+docker compose up -d falcon     # khởi động lại với image mới → tự động migrate schema
 docker image prune -f          # dọn image cũ (tùy chọn)
 ```
 
 ### Cách 4: Binary dựng sẵn (Releases)
 
-Tải file zip của phiên bản mới từ [Releases](https://github.com/Autumn-27/ARTEX/releases), dừng tiến trình cũ rồi ghi đè `artex` và `skills/` (giữ lại `config.json` và `data/` của bạn), sau đó khởi động lại:
+Tải file zip của phiên bản mới từ [Releases](https://github.com/Autumn-27/ARTEX/releases), dừng tiến trình cũ rồi ghi đè `falcon` và `skills/` (giữ lại `config.json` và `data/` của bạn), sau đó khởi động lại:
 
 ```bash
-cp -r <thư mục giải nén>/skills ./ && cp <thư mục giải nén>/artex ./
+cp -r <thư mục giải nén>/skills ./ && cp <thư mục giải nén>/falcon ./
 ./start.sh
 ```
 
@@ -202,7 +202,7 @@ cp -r <thư mục giải nén>/skills ./ && cp <thư mục giải nén>/artex ./
 git pull
 cd web && npm ci && npm run build:static && cd ..
 cp -r web/out server/webui/dist
-CGO_ENABLED=0 go build -tags embedui -o artex ./cmd/artex
+CGO_ENABLED=0 go build -tags embedui -o falcon ./cmd/falcon
 # khởi động lại ./start.sh
 ```
 
@@ -210,24 +210,24 @@ CGO_ENABLED=0 go build -tags embedui -o artex ./cmd/artex
 
 ## Cấu hình
 
-**Cơ sở dữ liệu** (`config.json`, hoặc ghi đè bằng biến môi trường `ARTEX_PG_DSN`):
+**Cơ sở dữ liệu** (`config.json`, hoặc ghi đè bằng biến môi trường `FALCON_PG_DSN`):
 
 ```json
 {
   "database": {
     "host": "127.0.0.1", "port": 5432,
-    "user": "artex", "password": "yourpass",
-    "dbname": "artex", "sslmode": "disable"
+    "user": "falcon", "password": "yourpass",
+    "dbname": "falcon", "sslmode": "disable"
   }
 }
 ```
 
 **LLM**: `export ANTHROPIC_API_KEY=sk-...` (hoặc `OPENAI_API_KEY`); cũng có thể điền tại trang "Cấu hình LLM" trong giao diện.
-Tùy chọn: `ARTEX_LLM_PROVIDER` / `ARTEX_LLM_MODEL` / `ARTEX_LLM_BASE_URL` / `ARTEX_LLM_PROXY`.
+Tùy chọn: `FALCON_LLM_PROVIDER` / `FALCON_LLM_MODEL` / `FALCON_LLM_BASE_URL` / `FALCON_LLM_PROXY`.
 
 **Số tiến trình song song**: số work agent cho mỗi tác vụ được cấu hình trong "Cài đặt hệ thống" (mặc định là 3).
 
-**Tham số thường dùng**: `./start.sh -addr :8787 -proxy :8788` (`-addr` phục vụ frontend + API, `-proxy` là proxy ghi lại lưu lượng). Script khởi động sẽ truyền nguyên vẹn các tham số này cho `artex`.
+**Tham số thường dùng**: `./start.sh -addr :8787 -proxy :8788` (`-addr` phục vụ frontend + API, `-proxy` là proxy ghi lại lưu lượng). Script khởi động sẽ truyền nguyên vẹn các tham số này cho `falcon`.
 
 ### Triển khai sau reverse proxy (HTTPS / chỉ mở 443)
 
@@ -280,21 +280,21 @@ Bấm "Kiểm thử lại" ở khu vực thao tác của mỗi dòng trong danh 
 ./dev.sh    # backend(:8787) + proxy lưu lượng(:8788) + frontend next dev(:5173) → http://localhost:5173
 ```
 
-- Backend: `go run ./cmd/artex` (không có `-tags embedui` thì không nhúng frontend)
+- Backend: `go run ./cmd/falcon` (không có `-tags embedui` thì không nhúng frontend)
 - Frontend: `cd web && npm run dev` (`/api` được proxy tới backend, có hot reload)
 - Kiểm thử: `go test ./...`
 - Xem trước bằng mock (không cần backend): `cd web && NEXT_PUBLIC_MOCK=1 npm run dev`
 - Triển khai lại demo trực tuyến (Cloudflare Pages, static export + dữ liệu mock):
   ```bash
   cd web && NEXT_PUBLIC_MOCK=1 npm run build:static
-  CLOUDFLARE_API_TOKEN=<token> npx wrangler pages deploy out --project-name=artex-demo --branch=main
+  CLOUDFLARE_API_TOKEN=<token> npx wrangler pages deploy out --project-name=falcon-demo --branch=main
   ```
 
 ---
 
 ## Kiến trúc hệ thống
 
-ARTEX là **hệ thống kiểm thử thâm nhập tự động được điều khiển bởi LLM đa agent**: backend Go dạng khối đơn (có nhúng frontend Next.js) + PostgreSQL, năng lực agent đến từ SDK [`norma`](https://github.com/Autumn-27/norma) (`agentcore` / `tool` / `permission` / `harness` / `memory` / `transcript`). Trái tim là **kiến trúc đồng thị**, cùng hai cơ chế tự chủ xoay quanh nó: **trao đổi thông tin ở mức quá trình giữa các worker** và **danh sách todo dùng chung nhiều lượt của planner giúp chuỗi tấn công ổn định**.
+FALCON là **hệ thống kiểm thử thâm nhập tự động được điều khiển bởi LLM đa agent**: backend Go dạng khối đơn (có nhúng frontend Next.js) + PostgreSQL, năng lực agent đến từ SDK [`norma`](https://github.com/Autumn-27/norma) (`agentcore` / `tool` / `permission` / `harness` / `memory` / `transcript`). Trái tim là **kiến trúc đồng thị**, cùng hai cơ chế tự chủ xoay quanh nó: **trao đổi thông tin ở mức quá trình giữa các worker** và **danh sách todo dùng chung nhiều lượt của planner giúp chuỗi tấn công ổn định**.
 
 ### Phân tầng tổng thể
 
@@ -458,7 +458,7 @@ flowchart TB
   R3["Lượt 3 (② sinh fact)　đẩy ý định ③"] --> T3
 ```
 
-Nhờ vậy chuỗi tấn công vẫn **tiến triển ổn định, không lặp, không sai thứ tự** trong môi trường "dựa trên sự kiện + phiên không trạng thái" — đây là chìa khóa để ARTEX có thể tự động đi trọn chuỗi khai thác nhiều bước.
+Nhờ vậy chuỗi tấn công vẫn **tiến triển ổn định, không lặp, không sai thứ tự** trong môi trường "dựa trên sự kiện + phiên không trạng thái" — đây là chìa khóa để FALCON có thể tự động đi trọn chuỗi khai thác nhiều bước.
 
 ---
 
@@ -488,7 +488,7 @@ Ai cũng có thể tự do sử dụng, chỉnh sửa và phân phối lại d�
 
 > ⚠️ **Lưu ý quan trọng**: bản thân giấy phép mã nguồn mở không hạn chế mục đích sử dụng phần mềm. Các "Hạn chế sử dụng" và "Tuyên bố miễn trừ trách nhiệm" dưới đây là những thỏa thuận bổ sung và tuyên bố nghiêm túc của tác giả dành cho người sử dụng, và cần được tôn trọng.
 
-**ARTEX chỉ dành cho mục đích học tập cá nhân, nghiên cứu mã nguồn và xác minh kỹ thuật cục bộ, và không được dùng để thực hiện bất kỳ cuộc kiểm thử thực tế nào đối với hệ thống hay trang web đang hoạt động.**
+**FALCON chỉ dành cho mục đích học tập cá nhân, nghiên cứu mã nguồn và xác minh kỹ thuật cục bộ, và không được dùng để thực hiện bất kỳ cuộc kiểm thử thực tế nào đối với hệ thống hay trang web đang hoạt động.**
 
 ### Phạm vi sử dụng được phép
 

@@ -1,6 +1,6 @@
 # Windsurf SWE-2 Integration Guide
 
-How we connected Devin/Windsurf's SWE-2 models to ARTEX by reverse-engineering the Codeium Connect protocol. This guide is reusable for connecting SWE-2 to any tool that needs an LLM backend with tool-calling support.
+How we connected Devin/Windsurf's SWE-2 models to FALCON by reverse-engineering the Codeium Connect protocol. This guide is reusable for connecting SWE-2 to any tool that needs an LLM backend with tool-calling support.
 
 ## Architecture Overview
 
@@ -301,7 +301,7 @@ See the full production implementation at `norma/llm/windsurf/windsurf.go` (686 
 - **Credential auto-refresh** — re-reads `credentials.toml` on 401/403, thread-safe via `sync.RWMutex`
 - **Image support** — inline base64 in `ChatMessagePrompt.images` (field 10), same as Devin client
 
-## ARTEX Integration Points
+## FALCON Integration Points
 
 ### Backend (Go)
 

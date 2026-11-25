@@ -24,6 +24,10 @@ func doStream(ctx context.Context, cfg Config, url string, body []byte, setHeade
 	if err := cfg.limiter.Wait(ctx); err != nil {
 		return nil, err
 	}
+	client := cfg.HTTPClient
+	if client == nil {
+		client = http.DefaultClient
+	}
 	retries := cfg.retries()
 	for attempt := 0; ; attempt++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
@@ -32,7 +36,7 @@ func doStream(ctx context.Context, cfg Config, url string, body []byte, setHeade
 		}
 		setHeaders(req)
 
-		resp, err := cfg.HTTPClient.Do(req)
+		resp, err := client.Do(req)
 		if err == nil && resp.StatusCode == http.StatusOK {
 			return resp, nil
 		}

@@ -19,7 +19,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Autumn-27/artex/db"
+	"github.com/MithrandirHEX/falcon/db"
+	"github.com/MithrandirHEX/falcon/egress"
+	"github.com/MithrandirHEX/falcon/stealth"
 
 	"github.com/miekg/dns"
 	"github.com/projectdiscovery/dnsx/libs/dnsx"
@@ -92,11 +94,9 @@ func New(as *db.AssetStore, proxy func() string, workers int) *Engine {
 // TLS verification (the proxy re-signs with its MITM CA; targets are often
 // self-signed — this is a pentest probe).
 func buildClient(proxy func() string) *http.Client {
-	tr := &http.Transport{
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-		DisableKeepAlives:   true,
-		TLSHandshakeTimeout: httpTimeout,
-	}
+	tr := stealth.NewTransport(&tls.Config{InsecureSkipVerify: true})
+	tr.DisableKeepAlives = true
+	tr.TLSHandshakeTimeout = httpTimeout
 	if proxy != nil {
 		tr.Proxy = func(*http.Request) (*url.URL, error) {
 			p := proxy()
@@ -107,7 +107,7 @@ func buildClient(proxy func() string) *http.Client {
 		}
 	}
 	return &http.Client{
-		Transport: tr,
+		Transport: egress.Dynamic("enrich", tr),
 		Timeout:   httpTimeout,
 		// cap redirects; keep them within scope by re-checking at probe time
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
@@ -155,6 +155,12 @@ func (e *Engine) worker() {
 			case jobDNS:
 				e.doDNS(j.id, j.arg)
 			case jobHTTP:
+				// Space out probes — machine-tight bursts are a scanning tell.
+				select {
+				case <-e.closed:
+					return
+				case <-time.After(stealth.Jitter(300*time.Millisecond, 1500*time.Millisecond)):
+				}
 				e.doHTTP(j.id, j.arg)
 			}
 		}
@@ -230,7 +236,7 @@ func (e *Engine) doHTTP(id int64, rawURL string) {
 	if err != nil {
 		return
 	}
-	req.Header.Set("User-Agent", "artex-enrich/1.0")
+	stealth.ApplyHeaders(req)
 	resp, err := e.client.Do(req)
 	if err != nil {
 		return

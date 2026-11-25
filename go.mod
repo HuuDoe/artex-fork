@@ -1,4 +1,4 @@
-module github.com/Autumn-27/artex
+module github.com/MithrandirHEX/falcon
 
 // Upstream github.com/Autumn-27/norma went closed-source and is no
 // longer publicly accessible; v0.4.3 was restored from the Go module
@@ -16,6 +16,7 @@ require (
 	github.com/lqqyt2423/go-mitmproxy v1.9.2
 	github.com/miekg/dns v1.1.72
 	github.com/projectdiscovery/dnsx v1.2.3
+	github.com/refraction-networking/utls v1.7.2
 	golang.org/x/crypto v0.55.0
 	golang.org/x/net v0.58.0
 	golang.org/x/text v0.41.0
@@ -26,6 +27,7 @@ require (
 	github.com/andybalholm/brotli v1.2.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/creack/pty v1.1.24 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gaissmai/bart v0.26.0 // indirect

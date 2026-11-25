@@ -17,9 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Autumn-27/artex/db"
 	"github.com/Autumn-27/norma/permission"
 	actool "github.com/Autumn-27/norma/tool"
+	"github.com/MithrandirHEX/falcon/db"
+	"github.com/MithrandirHEX/falcon/egress"
+	"github.com/MithrandirHEX/falcon/stealth"
 )
 
 // 本文件实现自定义工具执行器(docs/自定义工具设计.md)。system=false 的 tools 行按
@@ -441,9 +443,17 @@ func (s *Server) runHTTPTool(ctx context.Context, execRaw json.RawMessage, param
 	for k, v := range spec.Headers {
 		req.Header.Set(k, renderTemplate(v, params, identity))
 	}
+	// Requests without an explicit UA stand out more than a browser one does.
+	if req.Header.Get("User-Agent") == "" {
+		stealth.ApplyHeaders(req)
+	}
 	client := &http.Client{Timeout: timeoutOr(spec.TimeoutMs, 30000)}
 	if tr := s.httpProxyTransport(spec); tr != nil {
-		client.Transport = tr
+		client.Transport = egress.Dynamic("customtool", tr)
+	} else {
+		// Direct request: handshake with a Chrome-shaped ClientHello so the
+		// target can't JA3-fingerprint us as a Go client.
+		client.Transport = egress.Dynamic("customtool", stealth.NewTransport(nil))
 	}
 	resp, err := client.Do(req)
 	if err != nil {

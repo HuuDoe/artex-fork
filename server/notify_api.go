@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Autumn-27/artex/db"
-	"github.com/Autumn-27/artex/notify"
+	"github.com/MithrandirHEX/falcon/db"
+	"github.com/MithrandirHEX/falcon/notify"
 )
 
 // 本文件是推送功能的 HTTP 接口。全部路由挂在 requireAuth 之后（见 Handler()），
@@ -448,8 +448,8 @@ func notifyTestMessage(baseURL string) notify.Message {
 			Name:      "Test Message · Channel Configured Correctly",
 			VulnClass: "Connectivity Test",
 			Severity:  "low",
-			Summary:   "This is a test message from the ARTEX notification channel. Receiving this indicates the channel configuration is operational.",
-			Assets:    []string{"artex.example.com"},
+			Summary:   "This is a test message from the FALCON notification channel. Receiving this indicates the channel configuration is operational.",
+			Assets:    []string{"falcon.example.com"},
 			DetailURL: baseURL,
 		}},
 		HomeURL: baseURL,

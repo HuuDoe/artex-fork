@@ -1,13 +1,13 @@
 import unittest
 import requests
 
-class TestArtexWebLocalization(unittest.TestCase):
+class TestFalconWebLocalization(unittest.TestCase):
     BASE_URL = "http://localhost:8787"
 
     def test_login_page_loads(self):
         resp = requests.get(f"{self.BASE_URL}/login")
         self.assertEqual(resp.status_code, 200)
-        self.assertIn("ARTEX", resp.text)
+        self.assertIn("FALCON", resp.text)
 
     def test_dashboard_endpoint_exists(self):
         resp = requests.get(f"{self.BASE_URL}/dashboard")

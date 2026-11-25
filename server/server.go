@@ -19,29 +19,32 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Autumn-27/artex/agent"
-	"github.com/Autumn-27/artex/db"
-	"github.com/Autumn-27/artex/intercept"
-	"github.com/Autumn-27/artex/llmpool"
-	"github.com/Autumn-27/artex/llmrec"
-	"github.com/Autumn-27/artex/report"
-	"github.com/Autumn-27/artex/traffic"
 	"github.com/Autumn-27/norma/llm"
 	actool "github.com/Autumn-27/norma/tool"
 	"github.com/Autumn-27/norma/transcript"
+	"github.com/MithrandirHEX/falcon/agent"
+	"github.com/MithrandirHEX/falcon/db"
+	"github.com/MithrandirHEX/falcon/egress"
+	"github.com/MithrandirHEX/falcon/intercept"
+	"github.com/MithrandirHEX/falcon/llmpool"
+	"github.com/MithrandirHEX/falcon/llmrec"
+	"github.com/MithrandirHEX/falcon/report"
+	"github.com/MithrandirHEX/falcon/traffic"
 )
 
-// BuildVersion is the backend application version, injected from cmd/artex at
+// BuildVersion is the backend application version, injected from cmd/falcon at
 // startup (which in turn gets it from -ldflags "-X main.version=<tag>").
 // Defaults to "dev" for local builds. Exposed to the frontend via GET /api/health.
 var BuildVersion = "dev"
 
-// Server exposes the ARTEX backend over a JSON HTTP API for the shadcn/ui
+// Server exposes the FALCON backend over a JSON HTTP API for the shadcn/ui
 // frontend.
 type Server struct {
 	m      *Manager
 	engine *Engine
 	ctx    context.Context
+
+	scrubSecrets bool // WithSecretScrub: drop startup secrets from env before children can spawn
 
 	skillDir string // root directory for skill subdirectories
 	jwtKey   []byte // HS256 signing key loaded from / generated into dataDir/jwt.key
@@ -140,7 +143,7 @@ type triggeredRun struct {
 	mergeable bool   // true for finding/goal event triggers (merge by taskID)
 }
 
-func New(ctx context.Context, m *Manager, skillDir string, dataDir string, keyDir string) *Server {
+func New(ctx context.Context, m *Manager, skillDir string, dataDir string, keyDir string, opts ...Option) *Server {
 	key, err := loadOrCreateJWTKey(keyDir, dataDir)
 	if err != nil {
 		log.Fatalf("[auth] JWT key: %v", err)
@@ -151,6 +154,15 @@ func New(ctx context.Context, m *Manager, skillDir string, dataDir string, keyDi
 		profChatAgents: map[int64]*agent.ChatAgent{},
 		provByProfile:  map[int64]*provEntry{}, llmHealth: newLLMHealthRegistry(m.pg),
 		taskAgents: map[string]*taskAgentBundle{}, archiveWake: make(chan struct{}, 1)}
+	for _, o := range opts {
+		o(s)
+	}
+	// Capture the env-provided LLM config before scrubbing: agent.FromEnv reads
+	// the API keys and endpoint URLs we are about to drop from the environment.
+	envCfg, envOK := agent.FromEnv()
+	if s.scrubSecrets {
+		ScrubSecretEnv()
+	}
 	s.initSideQuestions()
 	// 熔断阈值/冷却是失败路径上的热参数，启动时把全局重试策略推给 Registry 一次；
 	// 之后每次保存策略再推一次（saveLLMRetryPolicy）。
@@ -243,7 +255,8 @@ func New(ctx context.Context, m *Manager, skillDir string, dataDir string, keyDi
 		} else {
 			log.Printf("[engine] LLM configured from DB: %s / %s", cfg.Provider(), cfg.Model)
 		}
-	} else if cfg, ok := agent.FromEnv(); ok {
+	} else if envOK {
+		cfg := envCfg
 		if err := s.applyLLM(cfg); err != nil {
 			log.Printf("[engine] env provider init failed — engine idle: %v", err)
 		} else {
@@ -801,6 +814,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/llm/records/{id}", s.pgGetLLMRecord)
 	mux.HandleFunc("GET /api/settings", s.getSettings)
 	mux.HandleFunc("PUT /api/settings", s.putSettings)
+	mux.HandleFunc("GET /api/settings/noise", s.noiseStatus) // current noise profile + per-host counters
 	// 漏洞 IM 推送。渠道是「多实例 + 各自过滤规则」的资源，因此独立成一组
 	// REST 接口，而不是塞进扁平的 /api/settings 键值里。
 	mux.HandleFunc("GET /api/notify/meta", s.notifyMeta)
@@ -947,7 +961,7 @@ func (s *Server) Handler() http.Handler {
 // --- handlers ---
 
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"ok": true, "service": "artex", "version": BuildVersion})
+	writeJSON(w, 200, map[string]any{"ok": true, "service": "falcon", "version": BuildVersion})
 }
 
 func (s *Server) stats(w http.ResponseWriter, r *http.Request) {
@@ -2159,7 +2173,7 @@ func (s *Server) findingsExport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stage, err := os.MkdirTemp("", "artex-finding-export-")
+	stage, err := os.MkdirTemp("", "falcon-finding-export-")
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -3318,12 +3332,14 @@ func (s *Server) settingsPayload() map[string]any {
 		"web_search_backend":       backend,
 		"brave_key_set":            strings.TrimSpace(braveKey) != "",
 		"tavily_key_set":           strings.TrimSpace(tavilyKey) != "",
-		"web_search_proxy":         proxy,                       // 独立出口代理(http/https/socks5)，空=直连
-		"global_proxy":             s.m.GlobalProxy(),           // 全局出口代理(http/https/socks5)，所有目标流量走它，空=直连
-		"python_interpreter":       strings.TrimSpace(pyStored), // 用户/自动设的值(空=用运行时检测)
-		"workers":                  s.m.Workers(),               // 并发工作 agent 数(默认3)；对之后启动的任务生效
-		"task_concurrency_enabled": concOn,                      // 任务并发上限开关(默认关)
-		"task_concurrency_limit":   concLimit,                   // 同时运行任务上限(开启后默认5)
+		"web_search_proxy":         proxy,                        // 独立出口代理(http/https/socks5)，空=直连
+		"global_proxy":             s.m.GlobalProxy(),            // 全局出口代理(http/https/socks5)，所有目标流量走它，空=直连
+		"passthrough_hosts":        s.m.PassthroughHosts(),       // MITM 直通域名列表(逗号分隔)：不拦截不记录，TLS 指纹原样到目标
+		"noise_profile":            egress.CurrentProfile().Name, // 目标流量限速配置(off|quiet|balanced|aggressive)；对下一个请求生效
+		"python_interpreter":       strings.TrimSpace(pyStored),  // 用户/自动设的值(空=用运行时检测)
+		"workers":                  s.m.Workers(),                // 并发工作 agent 数(默认3)；对之后启动的任务生效
+		"task_concurrency_enabled": concOn,                       // 任务并发上限开关(默认关)
+		"task_concurrency_limit":   concLimit,                    // 同时运行任务上限(开启后默认5)
 		// LLM 轮询(故障转移)。默认关；开启后走全局激活配置的 agent 在当前配置不可用时
 		// 自动切到下一个配置。bind_fallback 仅在轮询开启时有意义(默认关)。
 		"llm_pool_enabled":       s.m.LLMPoolEnabled(),
@@ -3392,6 +3408,8 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) {
 		TavilyKey        *string `json:"tavily_search_api_key"`
 		WebSearchProxy   *string `json:"web_search_proxy"`   // 独立出口代理(http/https/socks5)；null=不改，""=清空
 		GlobalProxy      *string `json:"global_proxy"`       // 全局出口代理(http/https/socks5)；null=不改，""=清空(直连)
+		PassthroughHosts *string `json:"passthrough_hosts"`  // MITM 直通域名(逗号分隔)；null=不改，""=清空
+		NoiseProfile     *string `json:"noise_profile"`      // 目标流量限速(off|quiet|balanced|aggressive)；null=不改
 		PythonInterp     *string `json:"python_interpreter"` // 自定义脚本工具的 python 解释器路径
 		Workers          *int    `json:"workers"`            // 并发工作 agent 数(>0)；对之后启动的任务生效
 		// 任务并发上限:同时「运行中」的任务数上限。关闭=不限;开启后新建任务超限则排队,有空位自动启动。
@@ -3545,6 +3563,25 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		changed = true // capture-off egress is baked into agents at build time → rebuild
+	}
+	if req.PassthroughHosts != nil {
+		if err := s.m.SetPassthroughHosts(*req.PassthroughHosts); err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+	}
+	if req.NoiseProfile != nil {
+		// Validated before storing, so a bad value changes nothing.
+		noise, ok := egress.ProfileByName(*req.NoiseProfile)
+		if !ok {
+			writeErr(w, 400, "noise_profile must be off, quiet, balanced or aggressive")
+			return
+		}
+		if err := s.m.pg.SetSetting(settingNoiseProfile, noise.Name); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+		egress.SetProfile(noise)
 	}
 	if req.WebSearchEnabled != nil || req.WebSearchBackend != nil || req.BraveKey != nil || req.TavilyKey != nil || req.WebSearchProxy != nil {
 		// Fill unspecified fields from current state so a partial PUT doesn't reset them.

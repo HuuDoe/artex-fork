@@ -1,6 +1,6 @@
 <div align="center">
 
-# ARTEX Fork — Windsurf/Devin SWE-2 Integration
+# FALCON Fork — Windsurf/Devin SWE-2 Integration
 
 Fork of [ARTEX](https://github.com/konanguyen/ARTEX) with native **Devin SWE-2 model support** via reverse-engineered Codeium Connect protocol.
 
@@ -8,7 +8,7 @@ Fork of [ARTEX](https://github.com/konanguyen/ARTEX) with native **Devin SWE-2 m
 
 ## What This Fork Adds
 
-- **Windsurf LLM provider** (`norma/llm/windsurf/windsurf.go`) — direct protobuf-over-HTTP to `server.codeium.com`, bypassing the Devin agent harness. ARTEX's agent loop keeps full control over tool calling, message history, and system prompts.
+- **Windsurf LLM provider** (`norma/llm/windsurf/windsurf.go`) — direct protobuf-over-HTTP to `server.codeium.com`, bypassing the Devin agent harness. FALCON's agent loop keeps full control over tool calling, message history, and system prompts.
 - **SWE-2 models** — `swe-2-high`, `swe-2-medium`, `swe-2-max` as selectable LLM profiles.
 - **CloakBrowser** — stealth Chromium with 87 C++ patches for evading bot detection.
 - **Traffic capture fixes** — mitmproxy-based evidence collection for vulnerability findings.
@@ -24,12 +24,12 @@ Fork of [ARTEX](https://github.com/konanguyen/ARTEX) with native **Devin SWE-2 m
 ### Setup
 
 ```bash
-git clone https://github.com/HuuDoe/artex-fork.git
-cd artex-fork
+git clone https://github.com/MithrandirHEX/falcon.git
+cd falcon
 
 # Create .env (only POSTGRES_PASSWORD is required)
 cat > .env <<'EOF'
-POSTGRES_PASSWORD=artex-local-2026
+POSTGRES_PASSWORD=falcon-local-2026
 EOF
 
 # (Optional) Install Devin CLI and authenticate for SWE-2 support
@@ -43,7 +43,7 @@ docker compose up -d
 
 Or use the automated script: `./setup.sh` (handles all of the above interactively).
 
-**Web UI:** http://localhost:8787 — login with `ARTEX` / `ARTEX`
+**Web UI:** http://localhost:8787 — login with `FALCON` / `FALCON`
 
 ### Adding SWE-2 as an LLM Profile
 
@@ -65,7 +65,7 @@ Skip the Devin CLI step. Configure OpenAI or Anthropic profiles instead:
 ### How the Windsurf Integration Works
 
 ```
-ARTEX agent loop  →  Windsurf provider (Go)  →  server.codeium.com
+FALCON agent loop  →  Windsurf provider (Go)  →  server.codeium.com
                      hand-rolled protobuf         GetChatMessage (streaming)
                      windsurf-api-key header       returns deltas + tool calls
 ```
@@ -84,17 +84,17 @@ cp docker-compose.override.yml.example docker-compose.override.yml
 ---
 
 <details>
-<summary><strong>Upstream ARTEX Documentation</strong></summary>
+<summary><strong>Upstream Documentation</strong></summary>
 
 <div align="center">
 
-# ARTEX
+# FALCON
 
 Autonomous AI Penetration Testing System (Go backend + Next.js frontend)
 
 English | [简体中文](README_CN.md) | [Tiếng Việt](README_VI.md)
 
-📦 **This repository is the final pure-source backup of ARTEX. The original Docker image `autumn27/artex` is gone; images are now self-maintained by this repository as `mianhuatang11/artex` (Docker Hub). If the pull fails, run `docker compose build` to build locally from pure source — no external prebuilt dependencies.**
+📦 **This repository is the final pure-source backup of ARTEX. The original Docker image `autumn27/artex` is gone; images are now self-maintained by this repository as `falcon` (Docker Hub). If the pull fails, run `docker compose build` to build locally from pure source — no external prebuilt dependencies.**
 
 </div>
 
@@ -138,7 +138,7 @@ English | [简体中文](README_CN.md) | [Tiếng Việt](README_VI.md)
 ## Approval record details
 
 The global **Approval Records** page, the per-task **Intercept Approval** tab, and approval cards in chat all support expanding to view details. The layout follows the approval detail component of
-[AegisHook](https://github.com/RuoJi6/AegisHook/blob/main/web/src/components/CallDetail.vue), reusing ARTEX's own components and theme:
+[AegisHook](https://github.com/RuoJi6/AegisHook/blob/main/web/src/components/CallDetail.vue), reusing FALCON's own components and theme:
 
 
 ## Asset sync (ScopeSentry)
@@ -147,7 +147,7 @@ Asset data can be synced directly from [ScopeSentry](https://github.com/Autumn-2
 
 - On the **Asset Sync** page, enter the ScopeSentry address and API Key to connect the data source;
 - Select targets and asset types (domain / subdomain / IP / port / site / endpoint…) by **project** or **task** dimension;
-- Import in one click and merge by company asset scope, ready for agents to explore in ARTEX's asset graph.
+- Import in one click and merge by company asset scope, ready for agents to explore in FALCON's asset graph.
 
 ---
 
@@ -158,8 +158,8 @@ Asset data can be synced directly from [ScopeSentry](https://github.com/Autumn-2
 ### Option 1: One-click install script (recommended)
 
 ```bash
-git clone https://github.com/mhtsec/ARTEX.git
-cd ARTEX
+git clone https://github.com/MithrandirHEX/falcon.git
+cd FALCON
 ./install.sh
 ```
 
@@ -173,14 +173,14 @@ After installation open **http://localhost:8787** (first visit to `/setup` sets 
 ### Option 2: Docker Compose (manual)
 
 ```bash
-git clone https://github.com/mhtsec/ARTEX.git
-cd ARTEX
+git clone https://github.com/MithrandirHEX/falcon.git
+cd FALCON
 cp .env.example .env          # set POSTGRES_PASSWORD, optionally ANTHROPIC_API_KEY
-docker compose up -d          # pulls the mianhuatang11/artex image + postgres
+docker compose up -d          # pulls the falcon image + postgres
 # → http://localhost:8787
 ```
 
-> The original image `autumn27/artex` has been removed from Docker Hub; images are now self-maintained by this repository as **`mianhuatang11/artex`**.
+> The original image `autumn27/artex` has been removed from Docker Hub; images are now self-maintained by this repository as **`falcon`**.
 > If the registry is unavailable (or you want to modify the code), just build locally from pure source: `docker compose build && docker compose up -d`.
 > The Dockerfile is a multi-stage build (frontend static export → Go static build → runtime image) and defaults to China-friendly dependency mirrors; add `--build-arg GOPROXY=... / --build-arg NPM_REGISTRY=...` to override.
 
@@ -192,16 +192,16 @@ Legacy SSE servers usually establish an event stream with `GET /sse`, then recei
 
 ### Option 3: Download prebuilt binaries (Releases)
 
-Download the zip for your platform from the original repository's [Releases](https://github.com/Autumn-27/ARTEX/releases) (**this backup repository does not host binaries**; if the original Releases are also gone use Option 2 or 4). After extraction you get `artex` + `start.sh` (`start.bat` on Windows) + `skills/` + `config.example.json`:
+Download the zip for your platform from the original repository's [Releases](https://github.com/Autumn-27/ARTEX/releases) (**this backup repository does not host binaries**; if the original Releases are also gone use Option 2 or 4). After extraction you get `falcon` + `start.sh` (`start.bat` on Windows) + `skills/` + `config.example.json`:
 
 ```bash
 cp config.example.json config.json   # fill in the database connection
 ./start.sh                           # → http://localhost:8787
 ```
 
-> Use `start.sh` / `start.bat` to launch instead of running `./artex` directly. It is a supervisor script: after the program exits it decides based on the exit code whether to relaunch, and the in-page
->[one-click update](#option-1-one-click-update-from-the-ui-recommended) relies on it to swap the binary. If you run `./artex` directly it won't be restarted after an update.
-> Run in the background: `nohup ./start.sh >artex.log 2>&1 &`.
+> Use `start.sh` / `start.bat` to launch instead of running `./falcon` directly. It is a supervisor script: after the program exits it decides based on the exit code whether to relaunch, and the in-page
+>[one-click update](#option-1-one-click-update-from-the-ui-recommended) relies on it to swap the binary. If you run `./falcon` directly it won't be restarted after an update.
+> Run in the background: `nohup ./start.sh >falcon.log 2>&1 &`.
 
 ### Option 4: Build a single binary from source
 
@@ -211,7 +211,7 @@ cd web && npm ci && npm run build:static && cd ..
 # 2) Copy into the embed directory
 cp -r web/out server/webui/dist
 # 3) Build (-tags embedui embeds the frontend)
-CGO_ENABLED=0 go build -tags embedui -o artex ./cmd/artex
+CGO_ENABLED=0 go build -tags embedui -o falcon ./cmd/falcon
 ./start.sh
 ```
 
@@ -221,13 +221,13 @@ CGO_ENABLED=0 go build -tags embedui -o artex ./cmd/artex
 
 ```bash
 ./build.sh --release
-# artifacts: dist/artex-0.3.3-*.zip
+# artifacts: dist/falcon-0.3.3-*.zip
 ```
 
-UPX-packed self-extracting binaries may be incompatible with some Linux kernels, virtualized environments or security policies, so they are disabled by default. Use `ARTEX_TARGETS` to customize targets; if you have confirmed the target environment is compatible you can pass `--upx` explicitly for a smaller binary:
+UPX-packed self-extracting binaries may be incompatible with some Linux kernels, virtualized environments or security policies, so they are disabled by default. Use `FALCON_TARGETS` to customize targets; if you have confirmed the target environment is compatible you can pass `--upx` explicitly for a smaller binary:
 
 ```bash
-ARTEX_TARGETS=linux/amd64,windows/amd64 ./build.sh --release
+FALCON_TARGETS=linux/amd64,windows/amd64 ./build.sh --release
 ./build.sh --target linux/amd64 --upx
 ```
 
@@ -235,50 +235,50 @@ ARTEX_TARGETS=linux/amd64,windows/amd64 ./build.sh --release
 
 ## Updating
 
-> An upgrade replaces the program only, not the data: the Postgres volume `pgdata`, `./data` (jwt.key / SQLite, etc.) and `./skills` are all preserved. **No manual database migration is needed** — `artex` idempotently re-runs `schema.sql` (including `ADD COLUMN` / `CREATE INDEX IF NOT EXISTS`) on every startup, i.e. "restart = migrate". Back up `./data` and the database before upgrading anyway.
+> An upgrade replaces the program only, not the data: the Postgres volume `pgdata`, `./data` (jwt.key / SQLite, etc.) and `./skills` are all preserved. **No manual database migration is needed** — `falcon` idempotently re-runs `schema.sql` (including `ADD COLUMN` / `CREATE INDEX IF NOT EXISTS`) on every startup, i.e. "restart = migrate". Back up `./data` and the database before upgrading anyway.
 
 ### Option 1: One-click update from the UI (recommended)
 
 In the **System Configuration** page (sidebar "System Configuration" → `/system/settings`), the **Version & Update** card can check for and install new versions without logging into the server.
 
-Click "Update" and ARTEX downloads the release package for the current platform → verifies it against the Release's `SHA256SUMS` → smoke-tests the new binary with `-h` → stages it as `artex.new` → the program exits and `start.sh` / `start.bat` relaunches it to complete the swap. The page waits for the new version to come up and then refreshes.
+Click "Update" and FALCON downloads the release package for the current platform → verifies it against the Release's `SHA256SUMS` → smoke-tests the new binary with `-h` → stages it as `falcon.new` → the program exits and `start.sh` / `start.bat` relaunches it to complete the swap. The page waits for the new version to come up and then refreshes.
 
-- **A failure never leaves a broken program behind**: if verification or the smoke test fails, the staged file is discarded and the current version keeps running; if the swapped-in version fails to start 3 times in a row it automatically rolls back to `artex.old` (the failed binary is kept as `artex.failed` for troubleshooting).
-- **Roll back any time**: the previous version is kept as `artex.old`, and the card has a "Roll back to previous version" button. Note that database schema changes are not reverted.
+- **A failure never leaves a broken program behind**: if verification or the smoke test fails, the staged file is discarded and the current version keeps running; if the swapped-in version fails to start 3 times in a row it automatically rolls back to `falcon.old` (the failed binary is kept as `falcon.failed` for troubleshooting).
+- **Roll back any time**: the previous version is kept as `falcon.old`, and the card has a "Roll back to previous version" button. Note that database schema changes are not reverted.
 - **Updates interrupt running tasks** — an update is a restart, so run it when idle.
 - **Development builds get no updates**: this is disabled when the version is `dev` or `git describe` output has a suffix, so release builds cannot overwrite a locally debugged binary.
-- **Under Docker only the program is replaced, not the image**: tools like playwright / nmap inside the image are not upgraded, and rebuilding the container with `docker compose up -d` falls back to the version baked into the image. To upgrade the image too, use `docker compose pull artex && docker compose up -d artex`.
+- **Under Docker only the program is replaced, not the image**: tools like playwright / nmap inside the image are not upgraded, and rebuilding the container with `docker compose up -d` falls back to the version baked into the image. To upgrade the image too, use `docker compose pull falcon && docker compose up -d falcon`.
 - If access to GitHub requires a proxy, configure a **global proxy** on the same page and the update chain will use it. Updates only download from GitHub domains and force HTTPS.
 
 ### Option 2: One-click update script
 
 ```bash
-cd ARTEX
+cd FALCON
 ./update.sh
 ```
 
 The script optionally runs `git pull` first, then lets you choose **① Docker update** or **② local build update** (mirroring `install.sh`):
 
-- **① Docker**: optionally specify the target image tag (press Enter to keep `.env`'s `ARTEX_TAG`, default `latest`) → `docker compose pull` → `docker compose up -d` (restarting with the new image migrates the schema automatically).
-- **② Local**: rebuild the frontend static output → recompile `./artex` (takes effect after a restart).
+- **① Docker**: optionally specify the target image tag (press Enter to keep `.env`'s `FALCON_TAG`, default `latest`) → `docker compose pull` → `docker compose up -d` (restarting with the new image migrates the schema automatically).
+- **② Local**: rebuild the frontend static output → recompile `./falcon` (takes effect after a restart).
 
 ### Option 3: Docker Compose (manual)
 
 ```bash
-cd ARTEX
+cd FALCON
 git pull                       # update compose / scripts (optional)
-# pin a version: set ARTEX_TAG=v0.2.0 in .env; latest is used if unset
-docker compose pull artex
-docker compose up -d artex     # restart with the new image → auto-migrate schema
+# pin a version: set FALCON_TAG=v0.2.0 in .env; latest is used if unset
+docker compose pull falcon
+docker compose up -d falcon     # restart with the new image → auto-migrate schema
 docker image prune -f          # clean up old images (optional)
 ```
 
 ### Option 4: Prebuilt binaries (Releases)
 
-Download the new version's zip from [Releases](https://github.com/Autumn-27/ARTEX/releases), stop the old process, overwrite `artex` and `skills/` (keep your `config.json` and `data/`), then restart:
+Download the new version's zip from [Releases](https://github.com/Autumn-27/ARTEX/releases), stop the old process, overwrite `falcon` and `skills/` (keep your `config.json` and `data/`), then restart:
 
 ```bash
-cp -r <extracted>/skills ./ && cp <extracted>/artex ./
+cp -r <extracted>/skills ./ && cp <extracted>/falcon ./
 ./start.sh
 ```
 
@@ -288,7 +288,7 @@ cp -r <extracted>/skills ./ && cp <extracted>/artex ./
 git pull
 cd web && npm ci && npm run build:static && cd ..
 cp -r web/out server/webui/dist
-CGO_ENABLED=0 go build -tags embedui -o artex ./cmd/artex
+CGO_ENABLED=0 go build -tags embedui -o falcon ./cmd/falcon
 # restart ./start.sh
 ```
 
@@ -296,24 +296,24 @@ CGO_ENABLED=0 go build -tags embedui -o artex ./cmd/artex
 
 ## Configuration
 
-**Database** (`config.json`, or override with the `ARTEX_PG_DSN` environment variable):
+**Database** (`config.json`, or override with the `FALCON_PG_DSN` environment variable):
 
 ```json
 {
   "database": {
     "host": "127.0.0.1", "port": 5432,
-    "user": "artex", "password": "yourpass",
-    "dbname": "artex", "sslmode": "disable"
+    "user": "falcon", "password": "yourpass",
+    "dbname": "falcon", "sslmode": "disable"
   }
 }
 ```
 
 **LLM**: `export ANTHROPIC_API_KEY=sk-...` (or `OPENAI_API_KEY`); it can also be filled in on the "LLM Configuration" page in the UI.
-Optional: `ARTEX_LLM_PROVIDER` / `ARTEX_LLM_MODEL` / `ARTEX_LLM_BASE_URL` / `ARTEX_LLM_PROXY`.
+Optional: `FALCON_LLM_PROVIDER` / `FALCON_LLM_MODEL` / `FALCON_LLM_BASE_URL` / `FALCON_LLM_PROXY`.
 
 **Concurrency**: the number of work agents per task is configured in "System Settings" (default 3).
 
-**Common flags**: `./start.sh -addr :8787 -proxy :8788` (`-addr` serves the frontend + API, `-proxy` is the traffic recording proxy). The start script passes flags through to `artex` verbatim.
+**Common flags**: `./start.sh -addr :8787 -proxy :8788` (`-addr` serves the frontend + API, `-proxy` is the traffic recording proxy). The start script passes flags through to `falcon` verbatim.
 
 ### Reverse proxy deployment (HTTPS / only 443 exposed)
 
@@ -366,21 +366,21 @@ In this version the history is viewed through vulnerability details and sessions
 ./dev.sh    # backend(:8787) + traffic proxy(:8788) + frontend next dev(:5173) → http://localhost:5173
 ```
 
-- Backend: `go run ./cmd/artex` (without `-tags embedui` the frontend is not embedded)
+- Backend: `go run ./cmd/falcon` (without `-tags embedui` the frontend is not embedded)
 - Frontend: `cd web && npm run dev` (`/api` is proxied to the backend, with hot reload)
 - Tests: `go test ./...`
 - Mock preview (no backend): `cd web && NEXT_PUBLIC_MOCK=1 npm run dev`
 - Redeploying the online demo (Cloudflare Pages, static export + mock data):
   ```bash
   cd web && NEXT_PUBLIC_MOCK=1 npm run build:static
-  CLOUDFLARE_API_TOKEN=<token> npx wrangler pages deploy out --project-name=artex-demo --branch=main
+  CLOUDFLARE_API_TOKEN=<token> npx wrangler pages deploy out --project-name=falcon-demo --branch=main
   ```
 
 ---
 
 ## System architecture
 
-ARTEX is an **LLM multi-agent autonomous penetration testing system**: a monolithic Go backend (with the Next.js frontend embedded) + PostgreSQL, where agent capabilities come from the [`norma`](https://github.com/Autumn-27/norma) SDK (`agentcore` / `tool` / `permission` / `harness` / `memory` / `transcript`). At its core is a **dual-graph architecture**, plus two autonomy mechanisms built around it: **process-level information exchange between workers** and a **planner multi-round shared todolist that stabilizes attack chains**.
+FALCON is an **LLM multi-agent autonomous penetration testing system**: a monolithic Go backend (with the Next.js frontend embedded) + PostgreSQL, where agent capabilities come from the [`norma`](https://github.com/Autumn-27/norma) SDK (`agentcore` / `tool` / `permission` / `harness` / `memory` / `transcript`). At its core is a **dual-graph architecture**, plus two autonomy mechanisms built around it: **process-level information exchange between workers** and a **planner multi-round shared todolist that stabilizes attack chains**.
 
 ### Overall layering
 
@@ -544,7 +544,7 @@ flowchart TB
   R3["Wake-up 3 (② produced fact)　dispatch intent ③"] --> T3
 ```
 
-So attack chains still **advance stably, without duplication or misordering** in an "event-driven + stateless session" environment — this is the key to ARTEX autonomously completing multi-step exploitation chains.
+So attack chains still **advance stably, without duplication or misordering** in an "event-driven + stateless session" environment — this is the key to FALCON autonomously completing multi-step exploitation chains.
 
 ---
 
@@ -574,7 +574,7 @@ Anyone is free to use, modify and redistribute this project, but **derivative wo
 
 > ⚠️ **Important**: the open source license itself does not restrict what the software is used for. The "Usage restrictions" and "Disclaimer" below are additional agreements and a solemn statement by the author, and must be respected.
 
-**ARTEX is for personal study, code research and local technical verification only, and must not be used to perform actual testing against any online system or website.**
+**FALCON is for personal study, code research and local technical verification only, and must not be used to perform actual testing against any online system or website.**
 
 ### Permitted use
 

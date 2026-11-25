@@ -109,7 +109,7 @@ export const CHANNEL_FIELDS: Record<string, FieldDef[]> = {
     },
     { key: "username", label: "Username", kind: "text" },
     { key: "password", label: "Password / Auth Code", kind: "password" },
-    { key: "from", label: "Sender", kind: "text", placeholder: "artex@example.com" },
+    { key: "from", label: "Sender", kind: "text", placeholder: "falcon@example.com" },
     { key: "to", label: "Recipients", kind: "list", help: "Comma-separated email addresses" },
     { key: "tls", label: "Implicit TLS", kind: "switch", help: "Enable for port 465; keep disabled for 587 (uses STARTTLS)" },
   ],

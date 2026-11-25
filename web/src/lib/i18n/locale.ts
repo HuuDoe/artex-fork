@@ -1,7 +1,7 @@
 /**
  * Supported UI locales.
  *
- * ARTEX ships three languages. `zh-CN` is the source language: every message
+ * FALCON ships three languages. `zh-CN` is the source language: every message
  * catalog is keyed by its original Chinese string, so a missing translation
  * degrades gracefully back to Chinese instead of rendering a raw key.
  */

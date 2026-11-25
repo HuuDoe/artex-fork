@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Autumn-27/artex/agent"
-	"github.com/Autumn-27/artex/db"
+	"github.com/MithrandirHEX/falcon/agent"
+	"github.com/MithrandirHEX/falcon/db"
 )
 
 func newAdmissionTestServer(m *Manager, available func(*Task) bool) *Server {

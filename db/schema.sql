@@ -1,4 +1,4 @@
--- ARTEX PostgreSQL schema (单一数据源)
+-- FALCON PostgreSQL schema (单一数据源)
 -- 幂等：可重复执行（IF NOT EXISTS / OR REPLACE / DROP TRIGGER IF EXISTS）。
 
 -- =====================================================================

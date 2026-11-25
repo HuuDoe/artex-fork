@@ -94,13 +94,16 @@ function neutralize(txt, n) {
     process.env.HTTP_PROXY = cfg.proxy;
     process.env.HTTPS_PROXY = cfg.proxy;
   }
-  const launchArgs = ['--no-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors'];
+  const launchArgs = ['--no-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors',
+    '--disable-blink-features=AutomationControlled'];
   if (cfg.proxy) launchArgs.push(`--proxy-server=${cfg.proxy}`);
   const browser = await puppeteer.launch({
     executablePath: cfg.chromium, headless: cfg.headless ? 'new' : false,
     args: launchArgs
   });
   const page = await browser.newPage();
+  await page.setUserAgent(cfg.userAgent ||
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36');
 
   // ---- WebSocket frame capture via CDP (fetch/XHR interception can't see WS) ----
   if (cfg.recordWs) {

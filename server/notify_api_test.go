@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Autumn-27/artex/db"
-	"github.com/Autumn-27/artex/notify"
+	"github.com/MithrandirHEX/falcon/db"
+	"github.com/MithrandirHEX/falcon/notify"
 )
 
 // 本文件覆盖推送功能的端到端行为：漏洞落库 → 事件 → 分派 → 真发 HTTP。
@@ -241,7 +241,7 @@ func TestNotifyEndToEndRealtimeDelivery(t *testing.T) {
 		t.Fatalf("应发出 1 条消息，实际 %d", hook.count())
 	}
 	text := markdownText(t, hook.last(t))
-	for _, want := range []string{"SQL注入", "高危", "摘要"} {
+	for _, want := range []string{"SQL注入", "High", "Summary"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("消息正文缺少 %q:\n%s", want, text)
 		}
@@ -347,11 +347,11 @@ func TestNotifyChannelAPICreateValidation(t *testing.T) {
 		payload map[string]any
 		wantSub string
 	}{
-		{"类型非法", map[string]any{"name": "x", "kind": "nope", "config": map[string]any{}}, "渠道类型无效"},
-		{"缺名称", map[string]any{"kind": notify.KindDingTalk, "config": map[string]any{"webhook": "https://e.com/h"}}, "缺少渠道名称"},
-		{"缺 webhook", map[string]any{"name": "x", "kind": notify.KindDingTalk, "config": map[string]any{}}, "Webhook"},
-		{"webhook 协议非法", map[string]any{"name": "x", "kind": notify.KindDingTalk, "config": map[string]any{"webhook": "file:///etc/passwd"}}, "Webhook 地址无效"},
-		{"模式非法", map[string]any{"name": "x", "kind": notify.KindDingTalk, "mode": "sometimes", "config": map[string]any{"webhook": "https://e.com/h"}}, "推送模式无效"},
+		{"类型非法", map[string]any{"name": "x", "kind": "nope", "config": map[string]any{}}, "Invalid channel type"},
+		{"缺名称", map[string]any{"kind": notify.KindDingTalk, "config": map[string]any{"webhook": "https://e.com/h"}}, "Channel name is required"},
+		{"缺 webhook", map[string]any{"name": "x", "kind": notify.KindDingTalk, "config": map[string]any{}}, "webhook"},
+		{"webhook 协议非法", map[string]any{"name": "x", "kind": notify.KindDingTalk, "config": map[string]any{"webhook": "file:///etc/passwd"}}, "Invalid webhook URL"},
+		{"模式非法", map[string]any{"name": "x", "kind": notify.KindDingTalk, "mode": "sometimes", "config": map[string]any{"webhook": "https://e.com/h"}}, "Invalid notification mode"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -427,7 +427,7 @@ func TestNotifyDigestBatchesMultipleFindingsIntoOneMessage(t *testing.T) {
 		t.Fatalf("三条应汇总成一条消息，实际发了 %d 条", got)
 	}
 	text := markdownText(t, hook.last(t))
-	if !strings.Contains(text, "近") || !strings.Contains(text, "3 个漏洞") {
+	if !strings.Contains(text, "3 new vulnerabilities") {
 		t.Fatalf("汇总消息缺少条数/时间窗文案:\n%s", text)
 	}
 	for i := 1; i <= 3; i++ {
@@ -488,7 +488,7 @@ func TestNotifyStatusChangeDelivery(t *testing.T) {
 	found := false
 	for i := 0; i < hook.count(); i++ {
 		text := markdownText(t, hook.body(t, i))
-		if strings.Contains(text, "状态变更") && strings.Contains(text, "已修复") {
+		if strings.Contains(text, "Status Change") && strings.Contains(text, "Fixed") {
 			found = true
 		}
 	}
@@ -538,7 +538,7 @@ func TestNotifyTestMessageEndpoint(t *testing.T) {
 		t.Fatalf("假接收端应收到 1 条测试消息，得到 %d", hook.count())
 	}
 	// 测试消息必须一眼能看出是测试，不能被误当成真实漏洞。
-	if text := markdownText(t, hook.last(t)); !strings.Contains(text, "测试") {
+	if text := markdownText(t, hook.last(t)); !strings.Contains(text, "Test Message") {
 		t.Fatalf("测试消息应标明是测试: %s", text)
 	}
 	// 配置坏掉时应把渠道的原始错误如实回给用户。
@@ -649,14 +649,14 @@ func TestNotifyMetaAndSettingsRoundTrip(t *testing.T) {
 	}
 
 	// 三项全局设置往返。尾部斜杠应被规范化掉，否则回链会拼出 "//function/..."。
-	if r := f.request("PUT", "/api/settings", `{"notify_public_base_url":"https://artex.example.com/","notify_digest_interval_min":15,"notify_enabled":true}`); r.Code != 200 {
+	if r := f.request("PUT", "/api/settings", `{"notify_public_base_url":"https://falcon.example.com/","notify_digest_interval_min":15,"notify_enabled":true}`); r.Code != 200 {
 		t.Fatalf("写设置失败 %d: %s", r.Code, r.Body)
 	}
 	t.Cleanup(func() {
 		f.pg.Exec(`DELETE FROM settings WHERE key IN ($1,$2)`, settingNotifyPublicBaseURL, settingNotifyDigestMinutes)
 	})
 	payload := f.s.settingsPayload()
-	if payload["notify_public_base_url"] != "https://artex.example.com" {
+	if payload["notify_public_base_url"] != "https://falcon.example.com" {
 		t.Fatalf("回链地址未规范化: %v", payload["notify_public_base_url"])
 	}
 	if payload["notify_digest_interval_min"] != 15 {
@@ -686,14 +686,14 @@ func TestNotifyDeepLinkUsesPublicBaseURL(t *testing.T) {
 		"config": map[string]any{"webhook": hook.URL},
 	})
 	finding := f.record(t, "带回链的漏洞", "high")
-	f.deliver(t, chID, "https://artex.example.com")
+	f.deliver(t, chID, "https://falcon.example.com")
 
 	body := hook.last(t)
 	card, _ := body["actionCard"].(map[string]any)
 	if card == nil {
 		t.Fatalf("有回链时应用 ActionCard，得到 msgtype=%v", body["msgtype"])
 	}
-	want := fmt.Sprintf("https://artex.example.com/function/findings/detail?id=%d", finding)
+	want := fmt.Sprintf("https://falcon.example.com/function/findings/detail?id=%d", finding)
 	if card["singleURL"] != want {
 		t.Fatalf("回链不对\n期望 %s\n得到 %v", want, card["singleURL"])
 	}
@@ -776,7 +776,7 @@ func TestNotifyDigestSegmentsAndDefersRemainder(t *testing.T) {
 		t.Fatalf("条目数对不上：sent=%d pending=%d total=%d（既没送达也没待发=丢失）", sent, pending, total)
 	}
 	// 消息正文必须如实告知还有多少条没包含在本条里。
-	if text := markdownText(t, hook.last(t)); !strings.Contains(text, "其余") {
+	if text := markdownText(t, hook.last(t)); !strings.Contains(text, "remaining") {
 		t.Fatalf("消息应说明还有条目未包含在本条:\n%.400s", text)
 	}
 

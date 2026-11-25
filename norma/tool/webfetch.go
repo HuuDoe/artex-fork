@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/Autumn-27/norma/permission"
+	utls "github.com/refraction-networking/utls"
 	"golang.org/x/net/html"
 )
 
@@ -31,6 +33,9 @@ type WebFetchConfig struct {
 	// InsecureTLS skips TLS certificate verification entirely (equivalent to
 	// curl -k). A blunt fallback when no CA cert is available; prefer CACert.
 	InsecureTLS bool
+	// WrapTransport, when set, wraps the fetch client's transport — e.g. to add
+	// request pacing. Applied after proxy/TLS setup.
+	WrapTransport func(http.RoundTripper) http.RoundTripper
 }
 
 // NewWebFetch builds the WebFetch tool: fetches a URL over HTTP(S) and returns
@@ -67,20 +72,26 @@ func NewWebFetch(cfg WebFetchConfig) CoreTool {
 
 const maxFetchBytes = 2 << 20 // 2 MiB
 
-// newFetchClient returns an HTTP client honoring the proxy / TLS config.
+// fetchUA spoofs a mainstream desktop browser so outbound fetches don't carry a
+// tool-identifying User-Agent. setFetchHeaders applies it plus the Accept
+// headers a real browser sends on a page load.
+const fetchUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+func setFetchHeaders(req *http.Request) {
+	req.Header.Set("User-Agent", fetchUA)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+}
+
+// newFetchClient returns an HTTP client honoring the proxy / TLS config. Direct
+// HTTPS connections are TLS-handshaked through utls impersonating Chrome, so the
+// ClientHello a target sees doesn't have Go's JA3/JA4 fingerprint (ALPN is
+// pinned to http/1.1 — Go can't speak h2 over an externally-dialed conn).
 func newFetchClient(cfg WebFetchConfig) *http.Client {
-	if cfg.Proxy == "" && !cfg.InsecureTLS && cfg.CACert == "" {
-		return &http.Client{}
-	}
-	tr := &http.Transport{}
-	if cfg.Proxy != "" {
-		if pu, err := url.Parse(cfg.Proxy); err == nil {
-			tr.Proxy = http.ProxyURL(pu)
-		}
-	}
+	var base *tls.Config
 	switch {
 	case cfg.InsecureTLS:
-		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		base = &tls.Config{InsecureSkipVerify: true}
 	case cfg.CACert != "":
 		// Trust the proxy's CA in addition to the system roots, so certs it
 		// re-signs verify while every other connection stays fully checked.
@@ -90,38 +101,66 @@ func newFetchClient(cfg WebFetchConfig) *http.Client {
 				pool = x509.NewCertPool()
 			}
 			if pool.AppendCertsFromPEM(pem) {
-				tr.TLSClientConfig = &tls.Config{RootCAs: pool}
+				base = &tls.Config{RootCAs: pool}
 			}
 		}
 	}
-	return &http.Client{Transport: tr}
+	dialer := &net.Dialer{Timeout: 15 * time.Second, KeepAlive: 30 * time.Second}
+	tr := &http.Transport{
+		DialContext: dialer.DialContext,
+		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return dialUTLS(ctx, dialer, network, addr, base)
+		},
+		// CONNECT-proxied HTTPS handshakes still use TLSClientConfig
+		// (DialTLSContext covers direct dials only), so it must carry the same
+		// CA/insecure policy for the recording proxy's re-signed certs.
+		TLSClientConfig:     base,
+		TLSHandshakeTimeout: 15 * time.Second,
+	}
+	if cfg.Proxy != "" {
+		if pu, err := url.Parse(cfg.Proxy); err == nil {
+			tr.Proxy = http.ProxyURL(pu)
+		}
+	}
+	var rt http.RoundTripper = tr
+	if cfg.WrapTransport != nil {
+		rt = cfg.WrapTransport(rt)
+	}
+	return &http.Client{Transport: rt}
 }
 
-// proxyLikelyErr reports whether a fetch error is the kind a recording/MITM proxy
-// introduces — a closed tunnel (EOF / connection reset), a failed CONNECT, or a
-// TLS/HTTP2 mismatch — so a direct (no-proxy) retry may succeed. Name-resolution
-// failures and caller cancellation/timeout are target- or caller-side problems a
-// direct retry won't fix, so those return false (no retry).
-func proxyLikelyErr(err error) bool {
-	if err == nil {
-		return false
+// dialUTLS dials TCP then performs a utls handshake presenting a Chrome
+// ClientHello. base supplies verification policy (insecure / extra roots);
+// ServerName is always taken from the dial target.
+func dialUTLS(ctx context.Context, d *net.Dialer, network, addr string, base *tls.Config) (net.Conn, error) {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		host = addr
 	}
-	s := strings.ToLower(err.Error())
-	for _, n := range []string{"no such host", "context canceled", "context deadline", "timeout"} {
-		if strings.Contains(s, n) {
-			return false
+	rawConn, err := d.DialContext(ctx, network, addr)
+	if err != nil {
+		return nil, err
+	}
+	ucfg := &utls.Config{ServerName: host}
+	if base != nil {
+		ucfg.InsecureSkipVerify = base.InsecureSkipVerify
+		ucfg.RootCAs = base.RootCAs
+	}
+	uconn := utls.UClient(rawConn, ucfg, utls.HelloChrome_Auto)
+	if err := uconn.BuildHandshakeState(); err != nil {
+		rawConn.Close()
+		return nil, err
+	}
+	for _, ext := range uconn.Extensions {
+		if a, ok := ext.(*utls.ALPNExtension); ok {
+			a.AlpnProtocols = []string{"http/1.1"}
 		}
 	}
-	for _, p := range []string{
-		"eof", "connection reset", "connection refused", "proxyconnect",
-		"broken pipe", "forcibly closed", "malformed", "http2", "http/2",
-		"tls:", "protocol error",
-	} {
-		if strings.Contains(s, p) {
-			return true
-		}
+	if err := uconn.HandshakeContext(ctx); err != nil {
+		rawConn.Close()
+		return nil, err
 	}
-	return false
+	return uconn, nil
 }
 
 // staticAssetExts are file extensions WebFetch refuses: linked resources (scripts,
@@ -157,14 +196,6 @@ func staticAssetExt(rawURL string) string {
 
 func webFetchRunner(cfg WebFetchConfig) func(context.Context, json.RawMessage, *ToolContext) (Result, error) {
 	client := newFetchClient(cfg)
-	// direct is the no-proxy fallback used when a proxied fetch fails for a
-	// proxy-caused reason (closed tunnel / failed CONNECT / TLS or HTTP2 mismatch):
-	// it bypasses the configured proxy so a recording/MITM hiccup doesn't fail an
-	// otherwise-reachable URL. nil when no proxy is configured (nothing to bypass).
-	var direct *http.Client
-	if cfg.Proxy != "" {
-		direct = newFetchClient(WebFetchConfig{InsecureTLS: cfg.InsecureTLS})
-	}
 	return func(ctx context.Context, input json.RawMessage, _ *ToolContext) (Result, error) {
 		var in struct {
 			URL     string `json:"url"`
@@ -185,21 +216,10 @@ func webFetchRunner(cfg WebFetchConfig) func(context.Context, json.RawMessage, *
 		if err != nil {
 			return Errorf("Error: " + err.Error()), nil
 		}
-		req.Header.Set("user-agent", "norma/0.4")
+		setFetchHeaders(req)
 		resp, err := client.Do(req)
-		// One direct retry when the proxied attempt failed for a proxy-caused reason.
-		// A non-proxy error (bad host, caller timeout/cancel) is returned as-is — a
-		// direct retry wouldn't fix it. The direct response is NOT captured by the proxy.
-		if err != nil && direct != nil && proxyLikelyErr(err) {
-			if r2, e2 := http.NewRequestWithContext(cctx, http.MethodGet, in.URL, nil); e2 == nil {
-				r2.Header.Set("user-agent", "norma/0.4")
-				if resp2, err2 := direct.Do(r2); err2 == nil {
-					resp, err = resp2, nil
-				} else {
-					err = err2 // surface the direct failure (more representative of the target)
-				}
-			}
-		}
+		// Fail closed on proxy errors: retrying direct would bypass the
+		// configured egress and leak the real source IP to the target.
 		if err != nil {
 			return Errorf("Error fetching URL: " + err.Error()), nil
 		}

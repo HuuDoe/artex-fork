@@ -158,12 +158,18 @@ func decideGrowth(d *NudgeDecision, in DecideNudgeInput, tiers map[Tier]tierPend
 	cfg Config, adaptive, floor int) {
 
 	tier2Threshold := roundHalfUp(float64(adaptive) * cfg.Nudge.Tier2GrowthMultiplier)
-	// Count-based tier triggers also need a usage floor. Without it a session
-	// with a handful of blocks but a nearly empty context would spend a turn
-	// consolidating for no benefit.
+	// Count-based tier triggers also need a worth-the-turn floor. Without it a
+	// session with a handful of blocks but a nearly empty context would spend a
+	// turn consolidating for no benefit. The floor is either context pressure
+	// (the usage band) or the summaries alone being worth reclaiming — a long
+	// session that compresses early and often can hold usage below the band for
+	// its whole life while blocks pile up, and the ladder must still advance.
 	usageFloor := cfg.Nudge.MinContextLimitPct
-	t2CountReady := tiers[2].count >= cfg.Tiers.Tier2Trigger && d.ContextUsage >= usageFloor
-	t3CountReady := tiers[3].count >= cfg.Tiers.Tier3Trigger && d.ContextUsage >= usageFloor
+	minBen := cfg.minPressureBenefit()
+	t2CountReady := tiers[2].count >= cfg.Tiers.Tier2Trigger &&
+		(d.ContextUsage >= usageFloor || tiers[2].pending >= minBen)
+	t3CountReady := tiers[3].count >= cfg.Tiers.Tier3Trigger &&
+		(d.ContextUsage >= usageFloor || tiers[3].pending >= minBen)
 
 	if tiers[1].pending >= adaptive {
 		d.ShouldInject = true

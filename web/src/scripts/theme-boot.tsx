@@ -114,9 +114,9 @@ export function ThemeBootScript() {
         root.setAttribute("lang", locale);
 
         var titles = {
-          "en-US": "ARTEX — Autonomous Penetration Testing Console",
-          "vi-VN": "ARTEX — Bảng điều khiển kiểm thử thâm nhập tự động",
-          "zh-CN": "ARTEX — 自主渗透测试控制台"
+          "en-US": "FALCON — Autonomous Penetration Testing Console",
+          "vi-VN": "FALCON — Bảng điều khiển kiểm thử thâm nhập tự động",
+          "zh-CN": "FALCON — 自主渗透测试控制台"
         };
         if (titles[locale]) {
           document.title = titles[locale];

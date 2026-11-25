@@ -30,9 +30,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Autumn-27/artex/db"
 	"github.com/Autumn-27/norma/permission"
 	actool "github.com/Autumn-27/norma/tool"
+	"github.com/MithrandirHEX/falcon/db"
 	mproxy "github.com/lqqyt2423/go-mitmproxy/proxy"
 	_ "modernc.org/sqlite"
 )
@@ -165,6 +165,11 @@ type Traffic struct {
 	// reason; connections to them are tunneled transparently (fail-open) so the
 	// request still reaches the target — unrecorded — instead of being killed.
 	pass sync.Map // hostname(string) -> struct{}
+	// passCfg is the operator-configured set of hosts always tunneled
+	// transparently — the MITM never intercepts them, so the client's real TLS
+	// handshake reaches the target (unrecorded). For stealth-critical targets
+	// where interception would expose the proxy's Go TLS fingerprint (JA3).
+	passCfg sync.Map // hostname(string) -> struct{}
 	// upstream is the global egress proxy every captured request is forwarded
 	// through (nil = dial targets directly). Both the intercepted and the
 	// transparent-passthrough paths honor it (go-mitmproxy's getUpstreamConn),
@@ -223,7 +228,11 @@ func Open(dir, addr string) (*Traffic, error) {
 	// can't intercept without breaking (see maybePassthrough). Those are tunneled
 	// transparently so the request still reaches the target instead of being killed.
 	p.SetShouldInterceptRule(func(req *http.Request) bool {
-		_, tunnel := t.pass.Load(hostOnly(req.Host))
+		host := strings.ToLower(hostOnly(req.Host))
+		if _, ok := t.passCfg.Load(host); ok {
+			return false
+		}
+		_, tunnel := t.pass.Load(host)
 		return !tunnel
 	})
 	p.AddAddon(&sink{t: t})
@@ -327,6 +336,27 @@ func (t *Traffic) SetUpstreamProxy(raw string) error {
 	return nil
 }
 
+// SetPassthroughHosts replaces the configured passthrough set (see passCfg).
+// Entries are normalized to bare hostnames; empties are skipped.
+func (t *Traffic) SetPassthroughHosts(hosts []string) {
+	next := map[string]struct{}{}
+	for _, h := range hosts {
+		h = hostOnly(strings.ToLower(strings.TrimSpace(h)))
+		if h != "" {
+			next[h] = struct{}{}
+		}
+	}
+	t.passCfg.Range(func(k, _ any) bool {
+		if _, ok := next[k.(string)]; !ok {
+			t.passCfg.Delete(k)
+		}
+		return true
+	})
+	for h := range next {
+		t.passCfg.Store(h, struct{}{})
+	}
+}
+
 // ValidateProxyURL parses and checks a proxy URL (http/https/socks5, optional
 // user:pass), returning the parsed URL. Exposed so callers can validate a global
 // proxy before persisting it even when the traffic proxy itself is disabled.
@@ -386,7 +416,8 @@ func (t *Traffic) DB() *sql.DB { return t.db }
 // sink is the go-mitmproxy addon that records completed exchanges.
 type sink struct {
 	mproxy.BaseAddon
-	t *Traffic
+	t     *Traffic
+	paced sync.Map // ClientConn.Id of a marked connection -> struct{}
 }
 
 func (s *sink) Response(f *mproxy.Flow) {
@@ -422,7 +453,7 @@ func (t *Traffic) maybePassthrough(f *mproxy.Flow, err error) {
 // target) is at fault — HTTP/2 handling, HEAD-with-body, or a protocol violation.
 func proxyCausedErr(err error) bool {
 	s := strings.ToLower(err.Error())
-	for _, p := range []string{"head request", "http2", "http/2", "protocol error", "protocol_error", "malformed", "tls:", "handshake", "connection reset", "broken pipe"} {
+	for _, p := range []string{"head request", "http2", "http/2", "protocol error", "protocol_error", "malformed"} {
 		if strings.Contains(s, p) {
 			return true
 		}

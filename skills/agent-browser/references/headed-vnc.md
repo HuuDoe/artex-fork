@@ -4,7 +4,7 @@
 
 The operator sees the browser via noVNC at `http://localhost:6080/vnc.html`.
 
-### Launch command (inside ARTEX container)
+### Launch command (inside FALCON container)
 
 ```bash
 DISPLAY=:99 /root/.cloakbrowser/chrome \
@@ -42,7 +42,7 @@ agent-browser --cdp 9333 screenshot
 
 2. **agent-browser `--headed` flag ignored** — If the agent-browser daemon is already running (headless), `--headed` on a new command is ignored. You must `agent-browser close --all`, kill all chrome processes, then relaunch. Using `--cdp` to connect to a manually launched headed Chrome avoids this entirely.
 
-3. **Daemon auto-respawns headless** — ARTEX workers using the browser MCP will auto-spawn the agent-browser daemon headless. Use a separate CDP port (9333) for the headed Chrome so they don't conflict.
+3. **Daemon auto-respawns headless** — FALCON workers using the browser MCP will auto-spawn the agent-browser daemon headless. Use a separate CDP port (9333) for the headed Chrome so they don't conflict.
 
 4. **Multiple Chrome instances** — Each Chrome instance uses 400-600MB. With limited container RAM, only run one headed instance at a time. Kill headless instances first.
 

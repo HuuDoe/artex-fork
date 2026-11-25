@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Autumn-27/artex/intercept"
 	"github.com/Autumn-27/norma/hook"
+	"github.com/MithrandirHEX/falcon/intercept"
 )
 
 // AuditEntry records one gated tool call.
@@ -123,10 +123,10 @@ func (g *Guard) applyIntercept(ctx context.Context, ev hook.Event) hook.Result {
 	return hook.Result{}
 }
 
-// systemBlockMessage frames an intercept block as an ARTEX platform-governance
+// systemBlockMessage frames an intercept block as an FALCON platform-governance
 // decision so the agent does not mistake it for a target-side defense.
 func systemBlockMessage(reason string) string {
-	return "[ARTEX Platform Governance · Non-Target Defense] This invocation was blocked by the platform. " +
+	return "[FALCON Platform Governance · Non-Target Defense] This invocation was blocked by the platform. " +
 		"Reason: " + reason + ". This operation is forbidden."
 }
 

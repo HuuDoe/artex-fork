@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ARTEX fork — quick setup for a fresh machine.
+# FALCON fork — quick setup for a fresh machine.
 # Handles: .env, Devin CLI install, docker-compose override, build & run.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -15,13 +15,13 @@ die()   { echo "[setup] ERROR: $*" >&2; exit 1; }
 if [ ! -f .env ]; then
   info "Creating .env (edit afterward if needed)"
   cat > .env <<'EOF'
-POSTGRES_PASSWORD=artex-local-2026
+POSTGRES_PASSWORD=falcon-local-2026
 
 # LLM — configure via the web UI after first boot, or set here:
 # OPENAI_API_KEY=sk-...
-# ARTEX_LLM_PROVIDER=openai
-# ARTEX_LLM_MODEL=claude-sonnet-4-20250514
-# ARTEX_LLM_BASE_URL=https://api.openai.com/v1
+# FALCON_LLM_PROVIDER=openai
+# FALCON_LLM_MODEL=claude-sonnet-4-20250514
+# FALCON_LLM_BASE_URL=https://api.openai.com/v1
 EOF
   info ".env created — add your LLM API key before starting"
 else
@@ -73,18 +73,18 @@ fi
 
 # ── 4. Build ────────────────────────────────────────────────────────────────
 
-info "Building ARTEX (this takes a few minutes on first run)..."
+info "Building FALCON (this takes a few minutes on first run)..."
 docker compose build
 
 # ── 5. Start ────────────────────────────────────────────────────────────────
 
-info "Starting ARTEX..."
+info "Starting FALCON..."
 docker compose up -d
 
 info ""
-info "ARTEX is starting up. Give it ~30s for postgres + migrations."
+info "FALCON is starting up. Give it ~30s for postgres + migrations."
 info "  Web UI:    http://localhost:8787"
-info "  Login:     username=ARTEX  password=ARTEX"
+info "  Login:     username=FALCON  password=FALCON"
 info "  noVNC:     http://localhost:6080/vnc.html (headed browser viewing)"
 info ""
 info "Next steps:"

@@ -4,20 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Autumn-27/artex/db"
-	"github.com/Autumn-27/artex/intercept"
 	"github.com/Autumn-27/norma/agentcore"
 	"github.com/Autumn-27/norma/harness"
 	"github.com/Autumn-27/norma/llm"
 	"github.com/Autumn-27/norma/permission"
 	actool "github.com/Autumn-27/norma/tool"
 	"github.com/Autumn-27/norma/transcript"
+	"github.com/MithrandirHEX/falcon/db"
+	"github.com/MithrandirHEX/falcon/egress"
+	"github.com/MithrandirHEX/falcon/intercept"
 )
 
 // Worker is an LLM work agent (docs §4.4): it claims ONE intent, completes it
@@ -95,7 +97,7 @@ func WorkerSessionID(explorationID, intentID int64) string {
 	return fmt.Sprintf("exp%d-worker-i%d", explorationID, intentID)
 }
 
-const workerChatMarkerPrefix = "<!-- ARTEX_WORKER_CHAT:"
+const workerChatMarkerPrefix = "<!-- FALCON_WORKER_CHAT:"
 
 func workerChatMarker(requestID string) string {
 	return workerChatMarkerPrefix + requestID + " -->"
@@ -205,9 +207,17 @@ func proxyEnv(proxyAddr, caCert string) []string {
 	if proxyAddr == "" {
 		return nil
 	}
+	// With a MITM CA (capture on) the proxy URL carries the pace marker userinfo
+	// (egress.MarkProxyURL): the recording proxy then paces this connection's
+	// requests by the noise profile. Only Bash gets the marker — WebFetch, the
+	// http custom tools and enrich keep the plain URL, since their own egress
+	// governor paces them already.
+	if caCert != "" {
+		proxyAddr = egress.MarkProxyURL(proxyAddr)
+	}
 	// NO_PROXY excludes internal infrastructure from the MITM proxy so agent
 	// commands that talk to the Docker daemon (tcp://127.0.0.1:2375), locally
-	// deployed services, or the ARTEX API itself don't get intercepted — which
+	// deployed services, or the FALCON API itself don't get intercepted — which
 	// caused hangs and broken Docker builds when capture was enabled.
 	const noProxy = "localhost,127.0.0.1,::1,postgres,.internal"
 	env := []string{
@@ -296,7 +306,7 @@ func workerSystem(proxyAddr, caCert, dataDir, runDir string) string {
 	// caCert is present only when the recording MITM is on, which is exactly when
 	// the traffic_* tools are registered — so it gates the traffic-tool note.
 	// Optional finding guidance is added for every role after tool resolution.
-	return body + workerTrafficBlock(caCert != "") + dockerBlock() + browserBlock() + workerArtifactSpec(runDir)
+	return body + workerTrafficBlock(caCert != "") + dockerBlock() + browserBlock() + workerArtifactSpec(runDir) + noiseProfileBlock()
 }
 
 func dockerBlock() string {
@@ -460,6 +470,9 @@ func (w *Worker) execute(ctx context.Context, name string, taskID int64, as *db.
 		EnableWebFetch: true,
 		WebFetchProxy:  w.proxyAddr,
 		WebFetchCACert: w.proxyCACert,
+		WebFetchWrapTransport: func(rt http.RoundTripper) http.RoundTripper {
+			return egress.Dynamic("webfetch", rt)
+		},
 		// 联网搜索(可选)。ddgs 无需 key；brave-free 需 BraveKey；tavily 需 TavilyKey。
 		// WebSearchProxy 是独立的出口代理(http/https/socks5)，与记录流量的 MITM 代理无关；空则直连。
 		EnableWebSearch:       w.webSearch.Enabled,

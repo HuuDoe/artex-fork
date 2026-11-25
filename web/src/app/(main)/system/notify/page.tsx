@@ -314,7 +314,7 @@ export default function NotifyPage() {
             <Label htmlFor="n-base">{t("notify.linkBase")}</Label>
             <Input
               id="n-base"
-              placeholder="https://artex.example.com"
+              placeholder="https://falcon.example.com"
               value={baseURL}
               onChange={(e) => setBaseURL(e.target.value)}
             />
